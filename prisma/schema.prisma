@@ -1,0 +1,64 @@
+// Database schema. After changing it, run: npm run db:migrate -- --name <what-changed>
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled: used by the app
+  directUrl = env("DATABASE_URL_UNPOOLED") // direct: used by migrations
+}
+
+model Guest {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  firstName String
+  lastName  String
+  phone     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bookings  Booking[]
+
+  @@map("guests")
+}
+
+model Room {
+  id            String    @id @default(uuid())
+  number        String    @unique // e.g. "204"
+  type          String // e.g. "Deluxe King"
+  pricePerNight Int // in kobo (Paystack's unit): ₦45,000 = 4500000
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  bookings      Booking[]
+
+  @@map("rooms")
+}
+
+enum BookingStatus {
+  PENDING // created, not paid yet
+  CONFIRMED // paid
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+}
+
+model Booking {
+  id          String        @id @default(uuid())
+  guestId     String
+  roomId      String
+  checkIn     DateTime      @db.Date
+  checkOut    DateTime      @db.Date
+  status      BookingStatus @default(PENDING)
+  totalAmount Int // in kobo
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  guest Guest @relation(fields: [guestId], references: [id], onDelete: Restrict)
+  room  Room  @relation(fields: [roomId], references: [id], onDelete: Restrict)
+
+  // The migration also adds a database rule that blocks two active
+  // bookings for the same room on overlapping dates.
+  @@index([guestId])
+  @@map("bookings")
+}

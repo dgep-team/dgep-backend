@@ -56,3 +56,39 @@ describe('Error handler', () => {
     console.error.mockRestore();
   });
 });
+
+describe('Database errors', () => {
+  const dbApp = (err) => {
+    const a = express();
+    a.get('/', asyncHandler(async () => { throw err; }));
+    a.use(errorHandler);
+    return a;
+  };
+  const withCode = (code) => Object.assign(new Error('prisma error'), { code });
+
+  it('maps a double booking to 409 ROOM_NOT_AVAILABLE', async () => {
+    const err = new Error('violates exclusion constraint "bookings_no_overlap"');
+    const res = await request(dbApp(err)).get('/');
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('ROOM_NOT_AVAILABLE');
+  });
+
+  it('maps backwards dates to 400 INVALID_DATES', async () => {
+    const err = new Error('violates check constraint "bookings_dates_check"');
+    const res = await request(dbApp(err)).get('/');
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('INVALID_DATES');
+  });
+
+  it('maps a duplicate value (P2002) to 409 ALREADY_EXISTS', async () => {
+    const res = await request(dbApp(withCode('P2002'))).get('/');
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('ALREADY_EXISTS');
+  });
+
+  it('maps a missing record (P2025) to 404 NOT_FOUND', async () => {
+    const res = await request(dbApp(withCode('P2025'))).get('/');
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe('NOT_FOUND');
+  });
+});
