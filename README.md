@@ -6,9 +6,12 @@ Node.js backend for the Digital Guest Experience Platform.
 
 ```bash
 npm install
-cp .env.example .env
+cp .env.example .env   # add the two DATABASE_URL values
+npm run db:deploy      # create the tables
 npm run dev
 ```
+
+After changing `prisma/schema.prisma`, run `npm run db:migrate -- --name <what-changed>` and commit the new migration.
 
 ## Folder structure
 
