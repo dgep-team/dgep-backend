@@ -3,12 +3,10 @@ const { randomUUID } = require('crypto');
 const prisma = require('../config/db');
 const config = require('../config');
 const AppError = require('../utils/AppError');
-const { findBookingForUser } = require('./booking.service');
+const { findBookingForUser, GUEST_FIELDS } = require('./booking.service');
 const storage = require('./storage.service');
 
 const OPEN_STATUSES = ['PENDING', 'CONFIRMED'];
-const GUEST_FIELDS = { id: true, firstName: true, lastName: true, email: true, phone: true };
-
 // ----- Guest -----
 
 async function submit(bookingId, user, { idType, idNumber }, files = {}) {

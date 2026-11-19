@@ -2,7 +2,7 @@
 // Status: OPEN -> IN_PROGRESS -> DONE, or CANCELLED.
 const prisma = require('../config/db');
 const AppError = require('../utils/AppError');
-const { findBookingForUser } = require('./booking.service');
+const { findBookingForUser, GUEST_FIELDS } = require('./booking.service');
 
 // Prices in kobo (0 = free). Placeholder list: confirm with the PM.
 const SERVICES = [
@@ -23,8 +23,6 @@ const NEXT_STATUSES = {
   CANCELLED: [],
 };
 const ACTIVE_BOOKING = ['CONFIRMED', 'CHECKED_IN'];
-const GUEST_FIELDS = { id: true, firstName: true, lastName: true, email: true, phone: true };
-
 const historyEntry = (status, user) => ({ status, at: new Date().toISOString(), by: user.role });
 
 async function findRequestForUser(requestId, user, include = {}) {

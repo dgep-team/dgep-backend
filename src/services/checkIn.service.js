@@ -48,4 +48,4 @@ async function completeCheckIn(bookingId, user, { arrivalTime, specialRequests }
   return summary(updated);
 }
 
-module.exports = { getStatus, completeCheckIn };
+module.exports = { getStatus, completeCheckIn, summary };

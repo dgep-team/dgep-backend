@@ -1,6 +1,9 @@
 const prisma = require('../config/db');
 const AppError = require('../utils/AppError');
 
+// Guest fields that are safe to show staff (never a password)
+const GUEST_FIELDS = { id: true, firstName: true, lastName: true, email: true, phone: true };
+
 // Loads a booking the user is allowed to see: their own, or any booking for staff.
 //   const booking = await findBookingForUser(req.params.id, req.user);
 async function findBookingForUser(bookingId, user, include = {}) {
@@ -12,4 +15,4 @@ async function findBookingForUser(bookingId, user, include = {}) {
   return booking;
 }
 
-module.exports = { findBookingForUser };
+module.exports = { findBookingForUser, GUEST_FIELDS };

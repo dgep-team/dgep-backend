@@ -11,6 +11,7 @@ router.use('/bookings', require('./idVerification.routes'));
 router.use('/bookings', require('./digitalKey.routes'));
 router.use('/admin/id-verifications', require('./adminIdVerification.routes'));
 router.use('/admin/requests', require('./adminRequest.routes'));
+router.use('/admin', require('./admin.routes'));
 router.use('/', require('./concierge.routes'));
 
 module.exports = router;

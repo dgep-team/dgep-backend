@@ -423,6 +423,147 @@
           }
         }
       ]
+    },
+    {
+      "name": "5. Staff dashboard",
+      "item": [
+        {
+          "name": "Overview (today)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "staff-1"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/overview"
+          }
+        },
+        {
+          "name": "Overview (a date)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "staff-1"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/overview?date=2026-12-01"
+          }
+        },
+        {
+          "name": "All bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "staff-1"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/bookings"
+          }
+        },
+        {
+          "name": "Bookings: filter",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "staff-1"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/bookings?status=CONFIRMED&from=2026-12-01&to=2026-12-31&search=john"
+          }
+        },
+        {
+          "name": "One booking",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "staff-1"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/bookings/{{bookingId}}"
+          }
+        },
+        {
+          "name": "Desk check-in",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "staff-1"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/bookings/{{bookingId}}/check-in"
+          }
+        },
+        {
+          "name": "Guests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "staff-1"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/guests?search=john"
+          }
+        },
+        {
+          "name": "Room availability",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "staff-1"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/rooms/availability?from=2026-12-01&to=2026-12-08"
+          }
+        }
+      ]
     }
   ]
 }
