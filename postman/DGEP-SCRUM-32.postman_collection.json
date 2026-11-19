@@ -2,7 +2,7 @@
   "info": {
     "name": "DGEP - SCRUM-32 (multi-hotel)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Run the folders in order. Guests and bookings are made in Prisma Studio until SCRUM-27 adds booking."
+    "description": "Run `npm run db:seed` first: the variables point at the demo data (Eko Suites, guest Amina arriving today). Folder 1 creates a new hotel instead; paste its ids over the defaults to test onboarding."
   },
   "variable": [
     {
@@ -11,27 +11,27 @@
     },
     {
       "key": "hotelId",
-      "value": "paste-hotelId"
+      "value": "00000000-0000-4000-8000-000000000101"
     },
     {
       "key": "managerId",
-      "value": "paste-managerId"
+      "value": "00000000-0000-4000-8000-000000000201"
     },
     {
       "key": "staffId",
-      "value": "paste-staffId"
+      "value": "00000000-0000-4000-8000-000000000203"
     },
     {
       "key": "guestId",
-      "value": "paste-guestId"
+      "value": "00000000-0000-4000-8000-000000000402"
     },
     {
       "key": "bookingId",
-      "value": "paste-bookingId"
+      "value": "00000000-0000-4000-8000-000000000502"
     },
     {
       "key": "requestId",
-      "value": "paste-requestId"
+      "value": "00000000-0000-4000-8000-000000000601"
     }
   ],
   "item": [

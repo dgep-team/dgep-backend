@@ -13,6 +13,15 @@ npm run dev
 
 After changing `prisma/schema.prisma`, run `npm run db:migrate -- --name <what-changed>` and commit the new migration.
 
+## Demo data
+
+```bash
+npm run db:seed   # 3 hotels, staff, rooms, guests, bookings and requests
+```
+
+Safe to run again (fixed ids, nothing duplicated). It prints the ids to use as
+`X-User-Id`. Bookings are relative to today, so the dashboard always has data.
+
 ## Folder structure
 
 ```
