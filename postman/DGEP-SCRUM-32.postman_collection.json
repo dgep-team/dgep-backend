@@ -1,0 +1,524 @@
+{
+  "info": {
+    "name": "DGEP - SCRUM-32 (multi-hotel)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Run the folders in order. Guests and bookings are made in Prisma Studio until SCRUM-27 adds booking."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "hotelId",
+      "value": "paste-hotelId"
+    },
+    {
+      "key": "managerId",
+      "value": "paste-managerId"
+    },
+    {
+      "key": "staffId",
+      "value": "paste-staffId"
+    },
+    {
+      "key": "guestId",
+      "value": "paste-guestId"
+    },
+    {
+      "key": "bookingId",
+      "value": "paste-bookingId"
+    },
+    {
+      "key": "requestId",
+      "value": "paste-requestId"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Platform: onboard a hotel",
+      "item": [
+        {
+          "name": "Create hotel (copy id -> hotelId)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "platform-team"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "admin"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/platform/hotels",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Eko Suites\",\n  \"city\": \"Lagos\",\n  \"address\": \"12 Marina Road, Lagos\",\n  \"timezone\": \"Africa/Lagos\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Add first manager (copy id -> managerId)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "platform-team"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "admin"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/platform/hotels/{{hotelId}}/staff",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"manager@ekosuites.test\",\n  \"firstName\": \"Ada\",\n  \"lastName\": \"Obi\",\n  \"role\": \"MANAGER\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Go live (fails until it has a room)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "platform-team"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "admin"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/platform/hotels/{{hotelId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            }
+          }
+        },
+        {
+          "name": "All hotels",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "platform-team"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "admin"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/platform/hotels"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Manager: set up the hotel",
+      "item": [
+        {
+          "name": "Add room",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{managerId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/rooms",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"number\": \"204\",\n  \"type\": \"Deluxe King\",\n  \"pricePerNight\": 4500000\n}"
+            }
+          }
+        },
+        {
+          "name": "Add staff (copy id -> staffId)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{managerId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/staff",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tolu@ekosuites.test\",\n  \"firstName\": \"Tolu\",\n  \"lastName\": \"Ade\",\n  \"role\": \"HOUSEKEEPING\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Staff list",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{managerId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/staff"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Guest: pre-check-in (no ID needed)",
+      "item": [
+        {
+          "name": "Check-in status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/check-in"
+          }
+        },
+        {
+          "name": "Check in",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/check-in",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"arrivalTime\": \"14:30\",\n  \"specialRequests\": \"Late arrival\",\n  \"guest\": {\n    \"phone\": \"+2348012345678\"\n  }\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Service requests",
+      "item": [
+        {
+          "name": "Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/concierge/categories"
+          }
+        },
+        {
+          "name": "Guest: new request (copy id -> requestId)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/requests",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"TOWELS\",\n  \"note\": \"Two bath towels please\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Guest: booking's requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/requests"
+          }
+        },
+        {
+          "name": "Guest: one request (with history)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/requests/{{requestId}}"
+          }
+        },
+        {
+          "name": "Guest: cancel",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/requests/{{requestId}}/cancel"
+          }
+        },
+        {
+          "name": "Staff: queue",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{managerId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/requests?status=SUBMITTED"
+          }
+        },
+        {
+          "name": "Staff: assign",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{managerId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/requests/{{requestId}}/assign",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"staffId\": \"{{staffId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Staff: start",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{managerId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/requests/{{requestId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Staff: complete",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{managerId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/requests/{{requestId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"COMPLETED\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Staff dashboard",
+      "item": [
+        {
+          "name": "Overview (today, hotel time)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{managerId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/overview"
+          }
+        },
+        {
+          "name": "Bookings: filter",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{managerId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/bookings?status=CONFIRMED&search=john"
+          }
+        },
+        {
+          "name": "One booking",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{managerId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/bookings/{{bookingId}}"
+          }
+        },
+        {
+          "name": "Front-desk check-in",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{managerId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/bookings/{{bookingId}}/check-in"
+          }
+        },
+        {
+          "name": "Guests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{managerId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/guests"
+          }
+        },
+        {
+          "name": "Room availability",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{managerId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/rooms/availability?from=2026-12-01&to=2026-12-08"
+          }
+        }
+      ]
+    }
+  ]
+}
