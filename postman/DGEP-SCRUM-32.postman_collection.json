@@ -19,6 +19,10 @@
     {
       "key": "verificationId",
       "value": "paste-verification-id"
+    },
+    {
+      "key": "requestId",
+      "value": "paste-request-id"
     }
   ],
   "item": [
@@ -254,6 +258,168 @@
               }
             ],
             "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/key/unlock"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Concierge",
+      "item": [
+        {
+          "name": "Services list",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/concierge/services"
+          }
+        },
+        {
+          "name": "New request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/requests",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"serviceCode\":\"AIRPORT_PICKUP\",\"note\":\"Flight AA123\",\"scheduledFor\":\"2026-12-01T09:00:00+01:00\"}"
+            }
+          }
+        },
+        {
+          "name": "Booking's requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/requests"
+          }
+        },
+        {
+          "name": "One request (with history)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/requests/{{requestId}}"
+          }
+        },
+        {
+          "name": "Guest: cancel",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/requests/{{requestId}}/cancel"
+          }
+        },
+        {
+          "name": "Staff: queue (open)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "staff-1"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/requests?status=OPEN"
+          }
+        },
+        {
+          "name": "Staff: one request",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "staff-1"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/requests/{{requestId}}"
+          }
+        },
+        {
+          "name": "Staff: start",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "staff-1"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/requests/{{requestId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"IN_PROGRESS\"}"
+            }
+          }
+        },
+        {
+          "name": "Staff: done",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "staff-1"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/requests/{{requestId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"DONE\"}"
+            }
           }
         }
       ]

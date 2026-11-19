@@ -60,9 +60,10 @@ model Booking {
   onlineCheckInAt DateTime? // set when the guest finishes online check-in
   keyCode         String?   @unique // digital room key (QR code), made at online check-in
 
-  guest          Guest           @relation(fields: [guestId], references: [id], onDelete: Restrict)
-  room           Room            @relation(fields: [roomId], references: [id], onDelete: Restrict)
-  idVerification IdVerification?
+  guest           Guest            @relation(fields: [guestId], references: [id], onDelete: Restrict)
+  room            Room             @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  idVerification  IdVerification?
+  serviceRequests ServiceRequest[]
 
   // The migration also adds a database rule that blocks two active
   // bookings for the same room on overlapping dates.
@@ -100,4 +101,31 @@ model IdVerification {
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@map("id_verifications")
+}
+
+enum RequestStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+// A guest's concierge request, e.g. extra towels or an airport pickup.
+model ServiceRequest {
+  id           String        @id @default(uuid())
+  bookingId    String
+  serviceCode  String // one of the codes in src/services/concierge.service.js
+  price        Int // in kobo, copied when the request is made
+  note         String?
+  scheduledFor DateTime?
+  status       RequestStatus @default(OPEN)
+  history      Json          @default("[]") // [{ status, at, by }], oldest first
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([status])
+  @@map("service_requests")
 }
