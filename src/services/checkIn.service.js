@@ -31,7 +31,7 @@ async function completeCheckIn(bookingId, user, { arrivalTime, specialRequests }
 
   if (status.checkInStatus === 'COMPLETED') return status; // already done: nothing to change
   if (booking.status === 'PENDING') throw new AppError(409, 'BOOKING_NOT_PAID', 'Please pay for the booking first');
-  if (booking.status !== 'CONFIRMED') throw new AppError(409, 'CHECK_IN_CLOSED', 'This booking can no longer check in');
+  if (booking.status !== 'CONFIRMED') throw new AppError(409, 'BOOKING_CLOSED', 'This booking is cancelled or already checked out');
   if (status.idVerificationStatus !== 'VERIFIED') throw new AppError(409, 'ID_NOT_VERIFIED', 'Your ID has not been verified yet');
 
   const updated = await prisma.booking.update({

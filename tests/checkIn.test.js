@@ -62,6 +62,13 @@ describe('POST /bookings/:id/check-in', () => {
     expect(res.body.error.code).toBe('BOOKING_NOT_PAID');
   });
 
+  it('is closed for a cancelled booking', async () => {
+    prisma.booking.findUnique.mockResolvedValue(booking({ status: 'CANCELLED' }));
+    const res = await checkIn();
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('BOOKING_CLOSED');
+  });
+
   it('needs a verified ID', async () => {
     prisma.booking.findUnique.mockResolvedValue(booking({ idVerification: { status: 'PENDING' } }));
     const res = await checkIn();
