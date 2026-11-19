@@ -4,15 +4,11 @@ const controller = require('../controllers/admin.controller');
 const { requireStaff, requireStaffRole } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const asyncHandler = require('../utils/asyncHandler');
-const { staffBody } = require('./schemas');
+const { staffBody, date } = require('./schemas');
 
 const router = express.Router();
 const managerOnly = requireStaffRole('MANAGER');
 
-const date = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD')
-  .refine((s) => !Number.isNaN(Date.parse(s)), 'Not a real date');
 const search = z.string().trim().min(1).max(100);
 
 const overviewQuery = z.object({ date: date.optional() });
@@ -26,11 +22,37 @@ const guestsQuery = z.object({ search: search.optional() });
 const availabilityQuery = z
   .object({ from: date, to: date })
   .refine((q) => q.to > q.from, { path: ['to'], message: 'Must be after from' });
-const roomBody = z.object({
-  number: z.string().trim().min(1).max(10),
-  type: z.string().trim().min(2).max(50),
+const text = (max) => z.string().trim().min(1).max(max);
+const list = (max) => z.array(text(80)).max(max);
+const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use 24-hour HH:MM');
+
+const profileBody = z
+  .object({
+    description: text(2000),
+    phone: z.string().trim().regex(/^\+?\d{7,15}$/, 'Digits only, e.g. +2348012345678'),
+    photos: z.array(z.string().url()).max(10),
+    amenities: list(30),
+    checkInTime: time,
+    checkOutTime: time,
+    arrivalInstructions: text(2000),
+    parkingInfo: text(500),
+    taxes: z.array(z.object({ name: text(40), percent: z.number().min(0).max(100) })).max(5),
+  })
+  .partial();
+const roomTypeBody = z.object({
+  name: text(60),
+  description: text(2000).optional(),
+  bedType: text(60),
+  maxGuests: z.number().int().min(1).max(10),
+  sizeSqm: z.number().int().positive().optional(),
+  view: text(60).optional(),
+  amenities: list(30).optional(),
+  accessibility: list(20).optional(),
+  photos: z.array(z.string().url()).max(10).optional(),
   pricePerNight: z.number().int().positive(), // kobo
+  cancellationPolicy: text(1000).optional(),
 });
+const roomBody = z.object({ number: text(10), roomTypeId: z.string().min(1) });
 
 // Mounted at /api/v1/admin (hotel staff; always their own hotel)
 router.use(requireStaff);
@@ -44,8 +66,15 @@ router.get('/guests', validate(guestsQuery, 'query'), asyncHandler(controller.li
 router.get('/rooms/availability', validate(availabilityQuery, 'query'), asyncHandler(controller.roomAvailability));
 router.use('/requests', require('./adminRequest.routes'));
 
-// Rooms and staff
+// Hotel listing, room types and rooms (managers change them; all staff can read)
+router.get('/hotel', asyncHandler(controller.getProfile));
+router.patch('/hotel', managerOnly, validate(profileBody), asyncHandler(controller.updateProfile));
+router.get('/room-types', asyncHandler(controller.listRoomTypes));
+router.post('/room-types', managerOnly, validate(roomTypeBody), asyncHandler(controller.addRoomType));
+router.patch('/room-types/:id', managerOnly, validate(roomTypeBody.partial()), asyncHandler(controller.updateRoomType));
 router.post('/rooms', managerOnly, validate(roomBody), asyncHandler(controller.addRoom));
+
+// Staff
 router.get('/staff', asyncHandler(controller.listStaff));
 router.post('/staff', managerOnly, validate(staffBody), asyncHandler(controller.addStaff));
 

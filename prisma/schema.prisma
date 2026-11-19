@@ -34,7 +34,19 @@ model Hotel {
   status    HotelStatus @default(PENDING)
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
+
+  // Listing details (PRD BR-02, BR-06, PC-05)
+  description         String?
+  photos              String[] @default([]) // image URLs
+  amenities           String[] @default([]) // e.g. "Pool", "Free Wi-Fi"
+  checkInTime         String   @default("14:00")
+  checkOutTime        String   @default("12:00")
+  arrivalInstructions String?
+  parkingInfo         String?
+  taxes               Json     @default("[]") // [{ name: "VAT", percent: 7.5 }], added to every stay
+
   rooms     Room[]
+  roomTypes RoomType[]
   staff     Staff[]
 
   @@map("hotels")
@@ -71,19 +83,46 @@ enum StaffRole {
   MAINTENANCE
 }
 
-model Room {
-  id            String    @id @default(uuid())
-  hotelId       String
-  number        String // e.g. "204", unique within its hotel
-  type          String // e.g. "Deluxe King"
-  pricePerNight Int // in kobo (Paystack's unit): ₦45,000 = 4500000
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  bookings      Booking[]
+// What guests choose and compare, e.g. "Deluxe King" (PRD BR-04, BR-05).
+model RoomType {
+  id                 String   @id @default(uuid())
+  hotelId            String
+  name               String
+  description        String?
+  bedType            String // e.g. "1 king bed"
+  maxGuests          Int
+  sizeSqm            Int?
+  view               String? // e.g. "Lagoon view"
+  amenities          String[] @default([])
+  accessibility      String[] @default([]) // e.g. "Step-free access"
+  photos             String[] @default([]) // image URLs
+  pricePerNight      Int // in kobo (Paystack's unit): ₦45,000 = 4500000
+  cancellationPolicy String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  hotel Hotel  @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  rooms Room[]
+
+  @@unique([hotelId, name])
+  @@map("room_types")
+}
+
+// A physical room, e.g. "204". Bookings are for a room; guests pick its type.
+model Room {
+  id         String    @id @default(uuid())
+  hotelId    String
+  roomTypeId String
+  number     String // unique within its hotel
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  bookings   Booking[]
+
+  hotel    Hotel    @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+  roomType RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Restrict)
 
   @@unique([hotelId, number])
+  @@index([roomTypeId])
   @@map("rooms")
 }
 

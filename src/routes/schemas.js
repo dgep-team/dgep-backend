@@ -8,4 +8,16 @@ const staffBody = z.object({
   role: z.enum(['MANAGER', 'RECEPTION', 'HOUSEKEEPING', 'MAINTENANCE']),
 });
 
-module.exports = { staffBody };
+const date = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD')
+  .refine((s) => !Number.isNaN(Date.parse(s)), 'Not a real date');
+
+// Optional stay dates: both or neither, check-out after check-in
+const stayDates = (fields = {}) =>
+  z
+    .object({ checkIn: date.optional(), checkOut: date.optional(), ...fields })
+    .refine((q) => !q.checkIn === !q.checkOut, { path: ['checkOut'], message: 'Send checkIn and checkOut together' })
+    .refine((q) => !q.checkIn || q.checkOut > q.checkIn, { path: ['checkOut'], message: 'Must be after checkIn' });
+
+module.exports = { staffBody, date, stayDates };

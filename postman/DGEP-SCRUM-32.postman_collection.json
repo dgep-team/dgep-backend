@@ -32,6 +32,10 @@
     {
       "key": "requestId",
       "value": "00000000-0000-4000-8000-000000000601"
+    },
+    {
+      "key": "roomTypeIds",
+      "value": "00000000-0000-4000-8000-000000000702,00000000-0000-4000-8000-000000000705"
     }
   ],
   "item": [
@@ -156,7 +160,7 @@
             "url": "{{baseUrl}}/api/v1/admin/rooms",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"number\": \"204\",\n  \"type\": \"Deluxe King\",\n  \"pricePerNight\": 4500000\n}"
+              "raw": "{\n  \"number\": \"205\",\n  \"roomTypeId\": \"00000000-0000-4000-8000-000000000702\"\n}"
             }
           }
         },
@@ -200,6 +204,137 @@
               }
             ],
             "url": "{{baseUrl}}/api/v1/admin/staff"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2b. Manager: listing and room types",
+      "item": [
+        {
+          "name": "Hotel profile (shows what is missing)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{managerId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/hotel"
+          }
+        },
+        {
+          "name": "Update profile and taxes",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{managerId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/hotel",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"A calm hotel on the Marina.\",\n  \"photos\": [\n    \"https://picsum.photos/seed/dgep-eko-1/1200/800\"\n  ],\n  \"amenities\": [\n    \"Free Wi-Fi\",\n    \"Pool\"\n  ],\n  \"arrivalInstructions\": \"Reception is on the ground floor.\",\n  \"taxes\": [\n    {\n      \"name\": \"VAT\",\n      \"percent\": 7.5\n    },\n    {\n      \"name\": \"Service charge\",\n      \"percent\": 10\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Room types",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{managerId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/room-types"
+          }
+        },
+        {
+          "name": "Add room type",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{managerId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/room-types",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Junior Suite\",\n  \"bedType\": \"1 king bed\",\n  \"maxGuests\": 3,\n  \"sizeSqm\": 40,\n  \"pricePerNight\": 6500000,\n  \"amenities\": [\n    \"Sofa\",\n    \"Minibar\"\n  ],\n  \"photos\": [\n    \"https://picsum.photos/seed/dgep-junior/1200/800\"\n  ],\n  \"cancellationPolicy\": \"Free cancellation until 24 hours before check-in.\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2c. Guest: browse (no login)",
+      "item": [
+        {
+          "name": "Hotels in a city",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/hotels?city=Lagos"
+          }
+        },
+        {
+          "name": "Hotel with prices for dates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/hotels/{{hotelId}}?checkIn=2026-12-01&checkOut=2026-12-03&guests=2"
+          }
+        },
+        {
+          "name": "Compare room types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/room-types/compare?ids={{roomTypeIds}}&checkIn=2026-12-01&checkOut=2026-12-03"
+          }
+        },
+        {
+          "name": "Arrival instructions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/arrival"
           }
         }
       ]

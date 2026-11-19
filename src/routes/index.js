@@ -10,5 +10,6 @@ router.use('/platform', require('./platform.routes'));
 router.use('/admin', require('./admin.routes'));
 router.use('/bookings', require('./checkIn.routes'));
 router.use('/', require('./request.routes'));
+router.use('/', require('./catalog.routes'));
 
 module.exports = router;

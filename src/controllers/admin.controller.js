@@ -30,7 +30,27 @@ async function roomAvailability(req, res) {
   sendSuccess(res, await admin.roomAvailability(req.user, req.query));
 }
 
-// ----- Rooms and staff (managers) -----
+// ----- Hotel listing, room types, rooms and staff -----
+
+async function getProfile(req, res) {
+  sendSuccess(res, await hotelService.getProfile(req.user.hotelId));
+}
+
+async function updateProfile(req, res) {
+  sendSuccess(res, await hotelService.updateProfile(req.user.hotelId, req.body));
+}
+
+async function listRoomTypes(req, res) {
+  sendSuccess(res, await hotelService.listRoomTypes(req.user.hotelId));
+}
+
+async function addRoomType(req, res) {
+  sendSuccess(res, await hotelService.addRoomType(req.user.hotelId, req.body), 201);
+}
+
+async function updateRoomType(req, res) {
+  sendSuccess(res, await hotelService.updateRoomType(req.user.hotelId, req.params.id, req.body));
+}
 
 async function addRoom(req, res) {
   sendSuccess(res, await hotelService.addRoom(req.user.hotelId, req.body), 201);
@@ -46,5 +66,5 @@ async function addStaff(req, res) {
 
 module.exports = {
   overview, listBookings, getBooking, checkInAtDesk, listGuests, roomAvailability,
-  addRoom, listStaff, addStaff,
+  getProfile, updateProfile, listRoomTypes, addRoomType, updateRoomType, addRoom, listStaff, addStaff,
 };
