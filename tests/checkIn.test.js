@@ -8,8 +8,7 @@ const app = require('../src/app');
 
 const GUEST = { 'X-User-Id': 'guest-1' };
 const booking = (fields = {}) => ({
-  id: 'b1', guestId: 'guest-1', status: 'CONFIRMED', onlineCheckInAt: null,
-  idVerification: { status: 'VERIFIED' }, ...fields,
+  id: 'b1', guestId: 'guest-1', status: 'CONFIRMED', onlineCheckInAt: null, idVerification: null, ...fields,
 });
 const checkIn = (body = { arrivalTime: '14:30' }) =>
   request(app).post('/api/v1/bookings/b1/check-in').set(GUEST).send(body);
@@ -69,10 +68,24 @@ describe('POST /bookings/:id/check-in', () => {
     expect(res.body.error.code).toBe('BOOKING_CLOSED');
   });
 
-  it('needs a verified ID', async () => {
-    prisma.booking.findUnique.mockResolvedValue(booking({ idVerification: { status: 'PENDING' } }));
+  it('does not need an ID (PRD: optional)', async () => {
+    prisma.booking.findUnique.mockResolvedValue(booking({ idVerification: null }));
+    prisma.booking.update.mockResolvedValue(booking({ onlineCheckInAt: new Date() }));
     const res = await checkIn();
-    expect(res.body.error.code).toBe('ID_NOT_VERIFIED');
+    expect(res.status).toBe(200);
+    expect(res.body.data.checkInStatus).toBe('COMPLETED');
+  });
+
+  it('updates guest details when given', async () => {
+    prisma.booking.findUnique.mockResolvedValue(booking());
+    prisma.booking.update.mockResolvedValue(booking({ onlineCheckInAt: new Date() }));
+    await checkIn({ arrivalTime: '14:30', guest: { phone: '+2348012345678' } });
+    expect(prisma.booking.update.mock.calls[0][0].data.guest).toEqual({ update: { phone: '+2348012345678' } });
+  });
+
+  it('rejects a bad phone number', async () => {
+    const res = await checkIn({ arrivalTime: '14:30', guest: { phone: 'call me' } });
+    expect(res.body.error.details[0].field).toBe('guest.phone');
   });
 
   it('completes check-in', async () => {
