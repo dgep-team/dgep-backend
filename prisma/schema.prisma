@@ -58,6 +58,7 @@ model Booking {
   arrivalTime     String? // "14:30"
   specialRequests String?
   onlineCheckInAt DateTime? // set when the guest finishes online check-in
+  keyCode         String?   @unique // digital room key (QR code), made at online check-in
 
   guest          Guest           @relation(fields: [guestId], references: [id], onDelete: Restrict)
   room           Room            @relation(fields: [roomId], references: [id], onDelete: Restrict)

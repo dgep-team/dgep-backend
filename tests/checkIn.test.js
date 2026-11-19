@@ -81,8 +81,8 @@ describe('POST /bookings/:id/check-in', () => {
     const res = await checkIn({ arrivalTime: '14:30', specialRequests: 'Late arrival' });
     expect(res.status).toBe(200);
     expect(res.body.data.checkInStatus).toBe('COMPLETED');
-    expect(prisma.booking.update.mock.calls[0][0].data).toMatchObject({
-      arrivalTime: '14:30', specialRequests: 'Late arrival',
-    });
+    const saved = prisma.booking.update.mock.calls[0][0].data;
+    expect(saved).toMatchObject({ arrivalTime: '14:30', specialRequests: 'Late arrival' });
+    expect(saved.keyCode).toHaveLength(32); // the digital key is made here
   });
 });

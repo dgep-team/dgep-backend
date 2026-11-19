@@ -8,6 +8,7 @@ const router = express.Router();
 
 router.use('/bookings', require('./checkIn.routes'));
 router.use('/bookings', require('./idVerification.routes'));
+router.use('/bookings', require('./digitalKey.routes'));
 router.use('/admin/id-verifications', require('./adminIdVerification.routes'));
 
 module.exports = router;

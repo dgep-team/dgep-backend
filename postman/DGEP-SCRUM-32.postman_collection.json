@@ -226,6 +226,37 @@
           }
         }
       ]
+    },
+    {
+      "name": "3. Digital key",
+      "item": [
+        {
+          "name": "Get key (QR code)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/key"
+          }
+        },
+        {
+          "name": "Unlock door",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/key/unlock"
+          }
+        }
+      ]
     }
   ]
 }

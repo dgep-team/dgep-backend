@@ -1,7 +1,8 @@
 // Online check-in before arrival. The steps, in order:
 //   1. pay       -> booking.status becomes CONFIRMED (SCRUM-27)
 //   2. verify ID -> idVerification.status becomes VERIFIED (staff review)
-//   3. check in  -> onlineCheckInAt is set; the digital key can now work
+//   3. check in  -> onlineCheckInAt is set and a digital key is made
+const { randomBytes } = require('crypto');
 const prisma = require('../config/db');
 const AppError = require('../utils/AppError');
 const { findBookingForUser } = require('./booking.service');
@@ -36,7 +37,12 @@ async function completeCheckIn(bookingId, user, { arrivalTime, specialRequests }
 
   const updated = await prisma.booking.update({
     where: { id: booking.id },
-    data: { arrivalTime, specialRequests, onlineCheckInAt: new Date() },
+    data: {
+      arrivalTime,
+      specialRequests,
+      onlineCheckInAt: new Date(),
+      keyCode: randomBytes(24).toString('base64url'), // random and unguessable
+    },
     include: { idVerification: true },
   });
   return summary(updated);
