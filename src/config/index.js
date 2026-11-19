@@ -9,4 +9,10 @@ const config = {
 
 config.isProduction = config.env === 'production';
 
+// Temporary login (src/middleware/auth.js) until SCRUM-27 adds real login.
+// On by default locally; on Render it is off unless AUTH_STUB=true.
+config.authStub = process.env.AUTH_STUB
+  ? process.env.AUTH_STUB === 'true'
+  : !config.isProduction;
+
 module.exports = config;

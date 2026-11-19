@@ -54,11 +54,49 @@ model Booking {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  guest Guest @relation(fields: [guestId], references: [id], onDelete: Restrict)
-  room  Room  @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  // Online check-in (SCRUM-32)
+  arrivalTime     String? // "14:30"
+  specialRequests String?
+  onlineCheckInAt DateTime? // set when the guest finishes online check-in
+
+  guest          Guest           @relation(fields: [guestId], references: [id], onDelete: Restrict)
+  room           Room            @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  idVerification IdVerification?
 
   // The migration also adds a database rule that blocks two active
   // bookings for the same room on overlapping dates.
   @@index([guestId])
   @@map("bookings")
+}
+
+enum IdType {
+  NIN
+  PASSPORT
+  DRIVERS_LICENSE
+  VOTERS_CARD
+}
+
+enum VerificationStatus {
+  PENDING // waiting for staff
+  VERIFIED
+  FAILED
+}
+
+// One ID check per booking. Uploading again replaces it and resets it to PENDING.
+model IdVerification {
+  id         String             @id @default(uuid())
+  bookingId  String             @unique
+  idType     IdType
+  idNumber   String
+  idImageKey String // file path in the private storage bucket, never a public URL
+  selfieKey  String?
+  status     VerificationStatus @default(PENDING)
+  reason     String? // why it FAILED, shown to the guest
+  reviewedBy String? // staff id
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("id_verifications")
 }
