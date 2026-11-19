@@ -10,12 +10,17 @@ const GUEST_FIELDS = { id: true, firstName: true, lastName: true, email: true, p
 //   const booking = await findBookingForUser(req.params.id, req.user);
 async function findBookingForUser(bookingId, user, include = {}) {
   const booking = await prisma.booking.findUnique({ where: { id: bookingId }, include: { room: true, ...include } });
-  const visible = booking && (user.role === 'staff' ? booking.room.hotelId === user.hotelId : user.role === 'guest');
-  if (!visible) throw new AppError(404, 'NOT_FOUND', 'Booking not found');
-  if (user.role === 'guest' && booking.guestId !== user.id) {
-    throw new AppError(403, 'FORBIDDEN', 'This is not your booking');
-  }
+  checkBookingAccess(booking, user, 'Booking');
   return booking;
 }
 
-module.exports = { findBookingForUser, GUEST_FIELDS };
+// The same rule for anything that belongs to a booking (it needs booking.room)
+function checkBookingAccess(booking, user, what) {
+  const visible = booking && (user.role === 'staff' ? booking.room.hotelId === user.hotelId : user.role === 'guest');
+  if (!visible) throw new AppError(404, 'NOT_FOUND', `${what} not found`);
+  if (user.role === 'guest' && booking.guestId !== user.id) {
+    throw new AppError(403, 'FORBIDDEN', `This is not your ${what.toLowerCase()}`);
+  }
+}
+
+module.exports = { findBookingForUser, checkBookingAccess, GUEST_FIELDS };

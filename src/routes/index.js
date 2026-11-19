@@ -9,5 +9,6 @@ const router = express.Router();
 router.use('/platform', require('./platform.routes'));
 router.use('/admin', require('./admin.routes'));
 router.use('/bookings', require('./checkIn.routes'));
+router.use('/', require('./request.routes'));
 
 module.exports = router;

@@ -57,7 +57,8 @@ model Staff {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  hotel            Hotel            @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  assignedRequests ServiceRequest[]
 
   @@index([hotelId])
   @@map("staff")
@@ -110,9 +111,10 @@ model Booking {
   specialRequests String?
   onlineCheckInAt DateTime? // set when the guest finishes online check-in
 
-  guest          Guest           @relation(fields: [guestId], references: [id], onDelete: Restrict)
-  room           Room            @relation(fields: [roomId], references: [id], onDelete: Restrict)
-  idVerification IdVerification?
+  guest           Guest            @relation(fields: [guestId], references: [id], onDelete: Restrict)
+  room            Room             @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  idVerification  IdVerification?
+  serviceRequests ServiceRequest[]
 
   // The migration also adds a database rule that blocks two active
   // bookings for the same room on overlapping dates.
@@ -150,4 +152,33 @@ model IdVerification {
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@map("id_verifications")
+}
+
+enum RequestStatus {
+  SUBMITTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED // by the guest, before staff start
+}
+
+// A guest's in-stay request, e.g. towels or a repair (PRD IS-01 to IS-06).
+model ServiceRequest {
+  id            String        @id @default(uuid())
+  bookingId     String
+  category      String // one of the codes in src/services/request.service.js
+  note          String?
+  preferredTime DateTime?
+  status        RequestStatus @default(SUBMITTED)
+  assignedToId  String? // the staff member doing it
+  history       Json          @default("[]") // [{ at, byId, byRole, status? , assignedToId? }], oldest first
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  booking    Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  assignedTo Staff?  @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId])
+  @@index([status])
+  @@index([assignedToId])
+  @@map("service_requests")
 }
