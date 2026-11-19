@@ -1,0 +1,231 @@
+{
+  "info": {
+    "name": "DGEP - SCRUM-32",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "guestId",
+      "value": "paste-guest-id"
+    },
+    {
+      "key": "bookingId",
+      "value": "paste-booking-id"
+    },
+    {
+      "key": "verificationId",
+      "value": "paste-verification-id"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Check-in",
+      "item": [
+        {
+          "name": "a. No login -> 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/check-in"
+          }
+        },
+        {
+          "name": "b. Someone else -> 403",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "someone-else"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/check-in"
+          }
+        },
+        {
+          "name": "c. Check-in status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/check-in"
+          }
+        },
+        {
+          "name": "d. Bad arrival time -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/check-in",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"arrivalTime\":\"2pm\"}"
+            }
+          }
+        },
+        {
+          "name": "e. Check in",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/check-in",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"arrivalTime\":\"14:30\",\"specialRequests\":\"Late arrival\"}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. ID verification",
+      "item": [
+        {
+          "name": "Upload ID (choose a JPEG/PNG for idImage)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/id-verification",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "idType",
+                  "value": "NIN",
+                  "type": "text"
+                },
+                {
+                  "key": "idNumber",
+                  "value": "12345678901",
+                  "type": "text"
+                },
+                {
+                  "key": "idImage",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "selfie",
+                  "type": "file",
+                  "src": [],
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "ID status (guest)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{guestId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/id-verification"
+          }
+        },
+        {
+          "name": "Staff: list pending",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "staff-1"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/id-verifications?status=PENDING"
+          }
+        },
+        {
+          "name": "Staff: verify",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "staff-1"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/id-verifications/{{verificationId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"VERIFIED\"}"
+            }
+          }
+        },
+        {
+          "name": "Staff: fail",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "staff-1"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "staff"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/id-verifications/{{verificationId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"FAILED\",\"reason\":\"Photo is blurry\"}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
