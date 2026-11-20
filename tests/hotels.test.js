@@ -64,7 +64,7 @@ describe('Platform: onboarding hotels', () => {
     prisma.hotel.findUnique.mockResolvedValue(hotel({ status: 'PENDING' }));
     prisma.staff.create.mockImplementation(async ({ data }) => ({ id: 'staff-9', ...data }));
     const res = await request(app).post('/api/v1/platform/hotels/h1/staff').set(ADMIN)
-      .send({ email: 'Ada@Eko.com', firstName: 'Ada', lastName: 'Obi', role: 'MANAGER' });
+      .send({ email: 'Ada@Eko.com', password: 'Password123!', firstName: 'Ada', lastName: 'Obi', role: 'MANAGER' });
     expect(res.status).toBe(201);
     expect(res.body.data).toMatchObject({ hotelId: 'h1', email: 'ada@eko.com', role: 'MANAGER' });
   });

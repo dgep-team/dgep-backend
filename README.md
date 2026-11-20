@@ -46,10 +46,13 @@ src/
 Import the files in `postman/` (Postman > Import), then set the collection
 variables `guestId` and `bookingId`.
 
-Until real login (SCRUM-27), send headers instead of a token:
+Log in first, then send `Authorization: Bearer <accessToken>`:
 
-| Who | Headers |
-|---|---|
-| Guest | `X-User-Id: <guest id>` |
-| Hotel staff | `X-User-Id: <staff id>`, `X-User-Role: staff` (sees only their hotel) |
-| Platform team | `X-User-Id: <any id>`, `X-User-Role: admin` (onboards hotels) |
+| Who | Login | Demo account (after `npm run db:seed`) |
+|---|---|---|
+| Guest | `POST /api/v1/auth/login` | `john.doe@guest.test` |
+| Hotel staff | `POST /api/v1/admin/auth/login` | `manager@ekosuites.test` (sees only their hotel) |
+| Platform team | `POST /api/v1/platform/auth/login` | `admin@dgep.test` |
+
+Demo password: `Password123!`. Locally you can also skip login with the headers
+`X-User-Id` and `X-User-Role` (guest, staff or admin); this is off on Render.

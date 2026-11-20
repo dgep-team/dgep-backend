@@ -6,6 +6,7 @@ const express = require('express');
 //   router.use('/bookings', require('./booking.routes'));
 const router = express.Router();
 
+router.use('/', require('./auth.routes')); // logins: must come before /admin and /platform
 router.use('/platform', require('./platform.routes'));
 router.use('/admin', require('./admin.routes'));
 router.use('/bookings', require('./checkIn.routes'));

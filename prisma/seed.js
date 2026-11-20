@@ -9,6 +9,10 @@ require('../src/config'); // loads .env
 const prisma = require('../src/config/db');
 const { hotelToday } = require('../src/utils/dates');
 const { quote } = require('../src/utils/pricing');
+const { hashPassword } = require('../src/utils/auth');
+
+// Demo logins. Every demo account uses this password.
+const DEMO_PASSWORD = 'Password123!';
 
 // Readable fixed ids: ...01xx = hotels, 02xx = staff, 03xx = rooms, 04xx = guests, 05xx = bookings, 06xx = requests, 07xx = room types
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -119,9 +123,12 @@ const upsertAll = (model, rows) =>
   Promise.all(rows.map(({ id: rowId, ...data }) => prisma[model].upsert({ where: { id: rowId }, create: { id: rowId, ...data }, update: data })));
 
 async function main() {
+  const passwordHash = await hashPassword(DEMO_PASSWORD);
+
   // Order matters: parents before children
+  await upsertAll('platformAdmin', [{ id: id(1), email: 'admin@dgep.test', name: 'Platform team', passwordHash }]);
   await upsertAll('hotel', hotels);
-  await upsertAll('staff', staff);
+  await upsertAll('staff', staff.map((s) => ({ ...s, passwordHash })));
   // Room types are matched by hotel + name, so types made by the room-types
   // migration from older data are filled in instead of duplicated
   const typeIds = {};
@@ -134,15 +141,15 @@ async function main() {
     typeIds[typeId] = saved.id;
   }
   await upsertAll('room', rooms.map((r) => ({ ...r, roomTypeId: typeIds[r.roomTypeId] })));
-  await upsertAll('guest', guests);
+  await upsertAll('guest', guests.map((g) => (g.id === id(403) ? g : { ...g, passwordHash }))); // Chidi booked without an account
   for (const b of bookings) await upsertAll('booking', [b]); // one by one: the no-overlap rule checks each
   await upsertAll('serviceRequest', requests);
 
-  console.log('Demo data ready. Use these ids as X-User-Id in Postman:');
+  console.log(`Demo data ready. Log in with these emails and the password ${DEMO_PASSWORD}`);
   console.table([
-    ...staff.map((s) => ({ who: `${s.role} at ${hotels.find((h) => h.id === s.hotelId).name}`, 'X-User-Role': 'staff', 'X-User-Id': s.id })),
-    ...guests.map((g) => ({ who: `Guest ${g.firstName}`, 'X-User-Role': 'guest', 'X-User-Id': g.id })),
-    { who: 'Platform team', 'X-User-Role': 'admin', 'X-User-Id': 'any text' },
+    { who: 'Platform team', login: 'POST /platform/auth/login', email: 'admin@dgep.test' },
+    ...staff.map((s) => ({ who: `${s.role} at ${hotels.find((h) => h.id === s.hotelId).name}`, login: 'POST /admin/auth/login', email: s.email })),
+    ...guests.filter((g) => g.id !== id(403)).map((g) => ({ who: `Guest ${g.firstName}`, login: 'POST /auth/login', email: g.email })),
   ]);
 }
 

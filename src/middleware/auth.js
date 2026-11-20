@@ -1,32 +1,36 @@
-// TEMPORARY login until SCRUM-27 adds real tokens (JWT).
+// Who is calling?
 //
-// For now the caller says who they are with two headers:
-//   X-User-Id:   the guest's id, or the staff member's id
-//   X-User-Role: guest (default), staff, or admin (the platform team)
+//   Authorization: Bearer <accessToken>   from POST /auth/login, /admin/auth/login or /platform/auth/login
 //
-// Staff are looked up in the database so we know their hotel. Everything a
-// staff member sees is limited to that hotel.
+// For local testing (AUTH_STUB, off on Render) these headers work too:
+//   X-User-Id: <id>    X-User-Role: guest (default), staff or admin
 //
-// SCRUM-27 only needs to replace readUser(). Routes keep using the require*
-// checks below, and controllers keep using req.user:
+// Staff are looked up so we know their hotel; everything they see is limited
+// to that hotel. Controllers use req.user:
 //   guest: { id, role: 'guest' }
 //   staff: { id, role: 'staff', staffRole, hotelId, hotel }
 //   admin: { id, role: 'admin' }
 const config = require('../config');
 const prisma = require('../config/db');
 const AppError = require('../utils/AppError');
+const { readToken } = require('../utils/auth');
 
 const ROLES = ['guest', 'staff', 'admin'];
 
-async function readUser(req) {
+function whoFromRequest(req) {
+  const bearer = req.get('Authorization')?.match(/^Bearer (.+)$/)?.[1];
+  if (bearer) return readToken(bearer);
   if (!config.authStub) return null;
   const id = req.get('X-User-Id');
   const role = req.get('X-User-Role') || 'guest';
-  if (!id || !ROLES.includes(role)) return null;
-  if (role !== 'staff') return { id, role };
+  return id && ROLES.includes(role) ? { id, role } : null;
+}
 
-  const staff = await prisma.staff.findUnique({ where: { id }, include: { hotel: true } });
-  return staff && { id, role, staffRole: staff.role, hotelId: staff.hotelId, hotel: staff.hotel };
+async function readUser(req) {
+  const who = whoFromRequest(req);
+  if (!who || who.role !== 'staff') return who;
+  const staff = await prisma.staff.findUnique({ where: { id: who.id }, include: { hotel: true } });
+  return staff && { id: who.id, role: 'staff', staffRole: staff.role, hotelId: staff.hotelId, hotel: staff.hotel };
 }
 
 // requireRole() = any logged-in user; requireRole('staff') = staff only
@@ -42,6 +46,16 @@ const requireRole = (...roles) => async (req, res, next) => {
   next();
 };
 
+// Logged in or not: sets req.user when there is a valid login (e.g. booking without an account)
+const optionalAuth = async (req, res, next) => {
+  try {
+    req.user = await readUser(req);
+    next();
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Use after requireStaff: only these staff roles, e.g. requireStaffRole('MANAGER')
 const requireStaffRole = (...staffRoles) => (req, res, next) => {
   if (!staffRoles.includes(req.user.staffRole)) return next(new AppError(403, 'FORBIDDEN', 'Your staff role cannot do this'));
@@ -50,7 +64,9 @@ const requireStaffRole = (...staffRoles) => (req, res, next) => {
 
 module.exports = {
   requireAuth: requireRole(),
+  requireGuest: requireRole('guest'),
   requireStaff: requireRole('staff'),
   requireAdmin: requireRole('admin'),
   requireStaffRole,
+  optionalAuth,
 };
