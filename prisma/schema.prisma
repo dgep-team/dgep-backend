@@ -23,15 +23,66 @@ model Guest {
   @@map("guests")
 }
 
+// A hotel on the platform. Only ACTIVE hotels can take bookings.
+model Hotel {
+  id        String      @id @default(uuid())
+  name      String
+  city      String
+  address   String
+  phone     String?
+  timezone  String      @default("Africa/Lagos") // IANA name; used for "today" and stay times
+  status    HotelStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  rooms     Room[]
+  staff     Staff[]
+
+  @@map("hotels")
+}
+
+enum HotelStatus {
+  PENDING // onboarding: adding rooms and staff
+  ACTIVE // live on the platform
+  SUSPENDED // switched off by the platform team
+}
+
+// Hotel staff. Each person works for one hotel and only sees that hotel's data.
+model Staff {
+  id        String    @id @default(uuid())
+  hotelId   String
+  email     String    @unique
+  firstName String
+  lastName  String
+  role      StaffRole
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@index([hotelId])
+  @@map("staff")
+}
+
+enum StaffRole {
+  MANAGER // can add rooms and staff
+  RECEPTION
+  HOUSEKEEPING
+  MAINTENANCE
+}
+
 model Room {
   id            String    @id @default(uuid())
-  number        String    @unique // e.g. "204"
+  hotelId       String
+  number        String // e.g. "204", unique within its hotel
   type          String // e.g. "Deluxe King"
   pricePerNight Int // in kobo (Paystack's unit): ₦45,000 = 4500000
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   bookings      Booking[]
 
+  hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Restrict)
+
+  @@unique([hotelId, number])
   @@map("rooms")
 }
 

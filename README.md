@@ -37,5 +37,10 @@ src/
 Import the files in `postman/` (Postman > Import), then set the collection
 variables `guestId` and `bookingId`.
 
-Until real login (SCRUM-27), send `X-User-Id: <guest id>` instead of a token.
-Add `X-User-Role: staff` for staff endpoints.
+Until real login (SCRUM-27), send headers instead of a token:
+
+| Who | Headers |
+|---|---|
+| Guest | `X-User-Id: <guest id>` |
+| Hotel staff | `X-User-Id: <staff id>`, `X-User-Role: staff` (sees only their hotel) |
+| Platform team | `X-User-Id: <any id>`, `X-User-Role: admin` (onboards hotels) |
