@@ -67,7 +67,7 @@ describe('Guest', () => {
   it("can't see someone else's request", async () => {
     prisma.serviceRequest.findUnique.mockResolvedValue(serviceRequest({ booking: booking({ guestId: 'guest-2' }) }));
     const res = await request(app).get('/api/v1/requests/r1').set(GUEST);
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
   });
 });
 

@@ -145,6 +145,6 @@ describe('My bookings', () => {
   it("can't open someone else's booking", async () => {
     prisma.booking.findUnique.mockResolvedValue(mine({ guestId: 'g2' }));
     const res = await request(app).get('/api/v1/bookings/b1').set(GUEST);
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
   });
 });

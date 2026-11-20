@@ -90,9 +90,9 @@ const rooms = [[301, 701, '101'], [302, 701, '102'], [303, 702, '201'], [304, 70
 });
 
 const guests = [
-  { id: id(401), email: 'john.doe@guest.test', firstName: 'John', lastName: 'Doe', phone: '+2348020000001' },
-  { id: id(402), email: 'amina.yusuf@guest.test', firstName: 'Amina', lastName: 'Yusuf', phone: '+2348020000002' },
-  { id: id(403), email: 'chidi.okeke@guest.test', firstName: 'Chidi', lastName: 'Okeke', phone: null },
+  { id: id(401), email: 'john.doe@example.com', firstName: 'John', lastName: 'Doe', phone: '+2348020000001' },
+  { id: id(402), email: 'amina.yusuf@example.com', firstName: 'Amina', lastName: 'Yusuf', phone: '+2348020000002' },
+  { id: id(403), email: 'chidi.okeke@example.com', firstName: 'Chidi', lastName: 'Okeke', phone: null },
 ];
 
 // [id, guest, room, check-in offset, check-out offset, status, online check-in done?]
