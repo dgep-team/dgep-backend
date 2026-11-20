@@ -8,16 +8,60 @@
 require('../src/config'); // loads .env
 const prisma = require('../src/config/db');
 const { hotelToday } = require('../src/utils/dates');
+const { quote } = require('../src/utils/pricing');
 
-// Readable fixed ids: ...0001xx = hotels, 02xx = staff, 03xx = rooms, 04xx = guests, 05xx = bookings, 06xx = requests
+// Readable fixed ids: ...01xx = hotels, 02xx = staff, 03xx = rooms, 04xx = guests, 05xx = bookings, 06xx = requests, 07xx = room types
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const day = (offset) => new Date(new Date(hotelToday('Africa/Lagos')).getTime() + offset * 86400000);
 const naira = (n) => n * 100; // prices are stored in kobo
 
+const photo = (name) => `https://picsum.photos/seed/dgep-${name}/1200/800`; // placeholder images
+const NIGERIA_TAXES = [{ name: 'VAT', percent: 7.5 }, { name: 'Service charge', percent: 10 }];
+
 const hotels = [
-  { id: id(101), name: 'Eko Suites', city: 'Lagos', address: '12 Marina Road, Lagos Island', phone: '+2348010000001', status: 'ACTIVE' },
-  { id: id(102), name: 'Abuja Grand', city: 'Abuja', address: '5 Aso Drive, Maitama', phone: '+2348010000002', status: 'ACTIVE' },
-  { id: id(103), name: 'Harbour View', city: 'Port Harcourt', address: '8 Aba Road, GRA', phone: '+2348010000003', status: 'PENDING' }, // still onboarding
+  {
+    id: id(101), name: 'Eko Suites', city: 'Lagos', address: '12 Marina Road, Lagos Island', phone: '+2348010000001', status: 'ACTIVE',
+    description: 'A calm business hotel on the Lagos Marina, 10 minutes from Victoria Island.',
+    photos: [photo('eko-1'), photo('eko-2')], amenities: ['Free Wi-Fi', 'Pool', 'Gym', 'Restaurant', 'Airport shuttle'],
+    arrivalInstructions: 'Enter from Marina Road. Reception is on the ground floor, open 24 hours.',
+    parkingInfo: 'Free parking behind the hotel.', taxes: NIGERIA_TAXES,
+  },
+  {
+    id: id(102), name: 'Abuja Grand', city: 'Abuja', address: '5 Aso Drive, Maitama', phone: '+2348010000002', status: 'ACTIVE',
+    description: 'Quiet rooms with garden views in Maitama, close to the Central Business District.',
+    photos: [photo('abuja-1')], amenities: ['Free Wi-Fi', 'Restaurant', 'Garden'], checkInTime: '15:00', checkOutTime: '11:00',
+    arrivalInstructions: 'Show your booking at the gate; security will direct you to reception.',
+    parkingInfo: 'Secure parking, ₦2,000 per night.', taxes: NIGERIA_TAXES,
+  },
+  { id: id(103), name: 'Harbour View', city: 'Port Harcourt', address: '8 Aba Road, GRA', phone: '+2348010000003', status: 'PENDING' }, // still onboarding: no listing yet
+];
+
+const roomTypes = [
+  {
+    id: id(701), hotelId: id(101), name: 'Standard', bedType: '1 queen bed', maxGuests: 2, sizeSqm: 22, view: 'City view',
+    pricePerNight: naira(35000), amenities: ['Air conditioning', 'Smart TV', 'Desk'], photos: [photo('eko-standard')],
+    description: 'A bright room with everything you need for a short stay.', cancellationPolicy: 'Free cancellation until 24 hours before check-in.',
+  },
+  {
+    id: id(702), hotelId: id(101), name: 'Deluxe King', bedType: '1 king bed', maxGuests: 2, sizeSqm: 30, view: 'Lagoon view',
+    pricePerNight: naira(45000), amenities: ['Air conditioning', 'Smart TV', 'Minibar', 'Rain shower'], accessibility: ['Step-free access'],
+    photos: [photo('eko-deluxe')], description: 'More space and a view over the lagoon.', cancellationPolicy: 'Free cancellation until 24 hours before check-in.',
+  },
+  {
+    id: id(703), hotelId: id(101), name: 'Executive Suite', bedType: '1 king bed + sofa bed', maxGuests: 4, sizeSqm: 55, view: 'Lagoon view',
+    pricePerNight: naira(90000), amenities: ['Living room', 'Bathtub', 'Minibar', 'Lounge access'], photos: [photo('eko-suite')],
+    description: 'A separate living room, ideal for families or longer stays.', cancellationPolicy: 'Non-refundable.',
+  },
+  {
+    id: id(704), hotelId: id(102), name: 'Standard', bedType: '1 double bed', maxGuests: 2, sizeSqm: 20, view: 'Garden view',
+    pricePerNight: naira(40000), amenities: ['Air conditioning', 'TV'], photos: [photo('abuja-standard')],
+    cancellationPolicy: 'Free cancellation until 48 hours before check-in.',
+  },
+  {
+    id: id(705), hotelId: id(102), name: 'Deluxe Twin', bedType: '2 single beds', maxGuests: 2, sizeSqm: 28, view: 'Garden view',
+    pricePerNight: naira(55000), amenities: ['Air conditioning', 'TV', 'Kettle'], photos: [photo('abuja-twin')],
+    cancellationPolicy: 'Free cancellation until 48 hours before check-in.',
+  },
 ];
 
 const staff = [
@@ -30,16 +74,12 @@ const staff = [
   { id: id(207), hotelId: id(103), email: 'manager@harbourview.test', firstName: 'Ebi', lastName: 'Douglas', role: 'MANAGER' },
 ];
 
-const rooms = [
-  { id: id(301), hotelId: id(101), number: '101', type: 'Standard', pricePerNight: naira(35000) },
-  { id: id(302), hotelId: id(101), number: '102', type: 'Standard', pricePerNight: naira(35000) },
-  { id: id(303), hotelId: id(101), number: '201', type: 'Deluxe King', pricePerNight: naira(45000) },
-  { id: id(304), hotelId: id(101), number: '202', type: 'Deluxe King', pricePerNight: naira(45000) },
-  { id: id(305), hotelId: id(101), number: '301', type: 'Executive Suite', pricePerNight: naira(90000) },
-  { id: id(306), hotelId: id(102), number: '101', type: 'Standard', pricePerNight: naira(40000) },
-  { id: id(307), hotelId: id(102), number: '102', type: 'Standard', pricePerNight: naira(40000) },
-  { id: id(308), hotelId: id(102), number: '201', type: 'Deluxe Twin', pricePerNight: naira(55000) },
-];
+// [id, room type, number]
+const rooms = [[301, 701, '101'], [302, 701, '102'], [303, 702, '201'], [304, 702, '202'], [305, 703, '301'],
+  [306, 704, '101'], [307, 704, '102'], [308, 705, '201']].map(([r, t, number]) => {
+  const type = roomTypes.find((x) => x.id === id(t));
+  return { id: id(r), hotelId: type.hotelId, roomTypeId: type.id, number };
+});
 
 const guests = [
   { id: id(401), email: 'john.doe@guest.test', firstName: 'John', lastName: 'Doe', phone: '+2348020000001' },
@@ -56,10 +96,11 @@ const bookings = [
   [505, 402, 308, 10, 12, 'CANCELLED', false], // Amina: cancelled
 ].map(([b, g, r, from, to, status, online]) => {
   const room = rooms.find((x) => x.id === id(r));
-  const nights = to - from;
+  const type = roomTypes.find((x) => x.id === room.roomTypeId);
+  const hotel = hotels.find((x) => x.id === room.hotelId);
   return {
     id: id(b), guestId: id(g), roomId: room.id, checkIn: day(from), checkOut: day(to), status,
-    totalAmount: room.pricePerNight * nights,
+    totalAmount: quote({ pricePerNight: type.pricePerNight, nights: to - from, taxes: hotel.taxes }).total,
     ...(online && { arrivalTime: '14:00', onlineCheckInAt: day(from - 1) }),
   };
 });
@@ -81,7 +122,18 @@ async function main() {
   // Order matters: parents before children
   await upsertAll('hotel', hotels);
   await upsertAll('staff', staff);
-  await upsertAll('room', rooms);
+  // Room types are matched by hotel + name, so types made by the room-types
+  // migration from older data are filled in instead of duplicated
+  const typeIds = {};
+  for (const { id: typeId, ...data } of roomTypes) {
+    const saved = await prisma.roomType.upsert({
+      where: { hotelId_name: { hotelId: data.hotelId, name: data.name } },
+      create: { id: typeId, ...data },
+      update: data,
+    });
+    typeIds[typeId] = saved.id;
+  }
+  await upsertAll('room', rooms.map((r) => ({ ...r, roomTypeId: typeIds[r.roomTypeId] })));
   await upsertAll('guest', guests);
   for (const b of bookings) await upsertAll('booking', [b]); // one by one: the no-overlap rule checks each
   await upsertAll('serviceRequest', requests);

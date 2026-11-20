@@ -45,7 +45,7 @@ async function listBookings(user, { status, from, to, search }) {
   }
   return prisma.booking.findMany({
     where,
-    include: { guest: { select: GUEST_FIELDS }, room: true },
+    include: { guest: { select: GUEST_FIELDS }, room: { include: { roomType: { select: { name: true } } } } },
     orderBy: { checkIn: 'desc' },
   });
 }
@@ -79,7 +79,7 @@ async function checkInAtDesk(bookingId, user) {
   return prisma.booking.update({
     where: { id: booking.id },
     data: { status: 'CHECKED_IN' }, // already CHECKED_IN: stays the same
-    include: { guest: { select: GUEST_FIELDS }, room: true },
+    include: { guest: { select: GUEST_FIELDS }, room: { include: { roomType: { select: { name: true } } } } },
   });
 }
 
@@ -88,6 +88,7 @@ async function roomAvailability(user, { from, to }) {
     where: { hotelId: user.hotelId },
     orderBy: { number: 'asc' },
     include: {
+      roomType: { select: { id: true, name: true } },
       bookings: {
         where: { ...overlaps(new Date(from), new Date(to)), status: { in: STAYING } },
         select: { id: true, checkIn: true, checkOut: true, status: true },
