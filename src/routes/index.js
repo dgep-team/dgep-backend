@@ -6,4 +6,6 @@ const express = require('express');
 //   router.use('/bookings', require('./booking.routes'));
 const router = express.Router();
 
+router.use('/bookings', require('./checkIn.routes'));
+
 module.exports = router;

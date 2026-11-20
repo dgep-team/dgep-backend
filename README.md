@@ -31,3 +31,11 @@ src/
 { "success": true, "data": { ... } }
 { "success": false, "error": { "code": "ROOM_TAKEN", "message": "Room not available" } }
 ```
+
+## Testing with Postman
+
+Import the files in `postman/` (Postman > Import), then set the collection
+variables `guestId` and `bookingId`.
+
+Until real login (SCRUM-27), send `X-User-Id: <guest id>` instead of a token.
+Add `X-User-Role: staff` for staff endpoints.
