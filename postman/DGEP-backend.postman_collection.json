@@ -1,0 +1,1064 @@
+{
+  "info": {
+    "name": "DGEP backend (MVP)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Works against staging (seeded demo data). Run \"0. Log in\" first: tokens are saved for the other folders. For local, set baseUrl to http://localhost:3000 and run npm run db:seed."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://dgep-backend-staging.onrender.com"
+    },
+    {
+      "key": "password",
+      "value": "Password123!"
+    },
+    {
+      "key": "guestToken",
+      "value": ""
+    },
+    {
+      "key": "staffToken",
+      "value": ""
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "hotelId",
+      "value": "00000000-0000-4000-8000-000000000101"
+    },
+    {
+      "key": "roomTypeId",
+      "value": ""
+    },
+    {
+      "key": "bookingId",
+      "value": ""
+    },
+    {
+      "key": "reference",
+      "value": ""
+    },
+    {
+      "key": "requestId",
+      "value": ""
+    },
+    {
+      "key": "staffId",
+      "value": "00000000-0000-4000-8000-000000000203"
+    },
+    {
+      "key": "newHotelId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Log in (saves tokens)",
+      "item": [
+        {
+          "name": "Guest: John",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@guest.test\",\n  \"password\": \"{{password}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json().data;",
+                  "if (d && d.accessToken) pm.collectionVariables.set('guestToken', d.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Staff: Eko manager",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"manager@ekosuites.test\",\n  \"password\": \"{{password}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json().data;",
+                  "if (d && d.accessToken) pm.collectionVariables.set('staffToken', d.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Platform team",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/platform/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@dgep.test\",\n  \"password\": \"{{password}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json().data;",
+                  "if (d && d.accessToken) pm.collectionVariables.set('adminToken', d.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Guest: register",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"new.guest@guest.test\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"New\",\n  \"lastName\": \"Guest\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json().data;",
+                  "if (d && d.accessToken) pm.collectionVariables.set('guestToken', d.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Guest: me",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{guestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Browse (no login)",
+      "item": [
+        {
+          "name": "Hotels in Lagos",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/hotels?city=Lagos"
+          }
+        },
+        {
+          "name": "Hotel with prices (copy a roomType id -> roomTypeId)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/hotels/{{hotelId}}?checkIn=2026-12-10&checkOut=2026-12-12&guests=2"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const t = pm.response.json().data.roomTypes.find((x) => x.availableRooms > 0);",
+                  "if (t) pm.collectionVariables.set('roomTypeId', t.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Compare room types",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/room-types/compare?ids={{roomTypeId}}&checkIn=2026-12-10&checkOut=2026-12-12"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Book and pay",
+      "item": [
+        {
+          "name": "Book (logged in)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{guestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"checkIn\": \"2026-12-10\",\n  \"checkOut\": \"2026-12-12\",\n  \"guests\": 2\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json().data;",
+                  "if (d && d.booking) pm.collectionVariables.set('bookingId', d.booking.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Book without an account",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"checkIn\": \"2026-12-14\",\n  \"checkOut\": \"2026-12-15\",\n  \"guest\": {\n    \"email\": \"walk.in@guest.test\",\n    \"firstName\": \"Ngozi\",\n    \"lastName\": \"Eze\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Start payment (open authorizationUrl)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{guestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/payments"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json().data;",
+                  "if (d && d.reference) pm.collectionVariables.set('reference', d.reference);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify payment",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{guestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/payments/verify/{{reference}}"
+          }
+        },
+        {
+          "name": "My bookings",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{guestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/bookings"
+          }
+        },
+        {
+          "name": "One booking",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{guestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}"
+          }
+        },
+        {
+          "name": "Cancel booking",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{guestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/cancel"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Before and during the stay",
+      "item": [
+        {
+          "name": "Check-in status",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{guestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/check-in"
+          }
+        },
+        {
+          "name": "Pre-check-in",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{guestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/check-in",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"arrivalTime\": \"14:30\",\n  \"specialRequests\": \"Late arrival\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Arrival info",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{guestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/arrival"
+          }
+        },
+        {
+          "name": "Request categories",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{guestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/concierge/categories"
+          }
+        },
+        {
+          "name": "New request",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{guestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/bookings/{{bookingId}}/requests",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"TOWELS\",\n  \"note\": \"Two bath towels please\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json().data;",
+                  "if (d && d.id) pm.collectionVariables.set('requestId', d.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "My request (with history)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{guestToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/requests/{{requestId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Staff dashboard",
+      "item": [
+        {
+          "name": "Overview",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/admin/overview"
+          }
+        },
+        {
+          "name": "Bookings",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/admin/bookings?search=john"
+          }
+        },
+        {
+          "name": "One booking (with payments)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/admin/bookings/{{bookingId}}"
+          }
+        },
+        {
+          "name": "Front-desk check-in",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/admin/bookings/{{bookingId}}/check-in"
+          }
+        },
+        {
+          "name": "Guests",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/admin/guests"
+          }
+        },
+        {
+          "name": "Room availability",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/admin/rooms/availability?from=2026-12-01&to=2026-12-15"
+          }
+        },
+        {
+          "name": "Request queue",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/admin/requests?status=SUBMITTED"
+          }
+        },
+        {
+          "name": "Assign request",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/requests/{{requestId}}/assign",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"staffId\": \"{{staffId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Start request",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/requests/{{requestId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Complete request",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/requests/{{requestId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"COMPLETED\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Manager: hotel setup",
+      "item": [
+        {
+          "name": "Hotel listing (what is missing)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/admin/hotel"
+          }
+        },
+        {
+          "name": "Update listing and taxes",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/hotel",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amenities\": [\n    \"Free Wi-Fi\",\n    \"Pool\",\n    \"Gym\"\n  ],\n  \"taxes\": [\n    {\n      \"name\": \"VAT\",\n      \"percent\": 7.5\n    },\n    {\n      \"name\": \"Service charge\",\n      \"percent\": 10\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Room types",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/admin/room-types"
+          }
+        },
+        {
+          "name": "Add room type",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/room-types",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Junior Suite\",\n  \"bedType\": \"1 king bed\",\n  \"maxGuests\": 3,\n  \"pricePerNight\": 6500000,\n  \"photos\": [\n    \"https://picsum.photos/seed/dgep-junior/1200/800\"\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Add room",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/rooms",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"number\": \"401\",\n  \"roomTypeId\": \"{{roomTypeId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Staff list",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/admin/staff"
+          }
+        },
+        {
+          "name": "Add staff",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/admin/staff",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"new.staff@ekosuites.test\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"Femi\",\n  \"lastName\": \"Ojo\",\n  \"role\": \"RECEPTION\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Platform: onboard a hotel",
+      "item": [
+        {
+          "name": "All hotels",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/platform/hotels"
+          }
+        },
+        {
+          "name": "Create hotel",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/platform/hotels",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Lekki Lodge\",\n  \"city\": \"Lagos\",\n  \"address\": \"3 Admiralty Way, Lekki\",\n  \"timezone\": \"Africa/Lagos\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json().data;",
+                  "if (d && d.id) pm.collectionVariables.set('newHotelId', d.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add first manager",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/platform/hotels/{{newHotelId}}/staff",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"manager@lekkilodge.test\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"Bisi\",\n  \"lastName\": \"Ola\",\n  \"role\": \"MANAGER\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Go live (lists what is missing)",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/platform/hotels/00000000-0000-4000-8000-000000000103/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
