@@ -7,6 +7,7 @@ const { signToken } = require('../utils/auth');
 const HOLD_MINUTES = 30; // an unpaid booking keeps its room this long
 const HOLDS_ROOM = ['PENDING', 'CONFIRMED', 'CHECKED_IN']; // the same statuses the no-overlap rule blocks
 const BOOKING_VIEW = {
+  payments: { select: { reference: true, status: true, amount: true, paidAt: true }, orderBy: { createdAt: 'desc' } },
   room: { include: { roomType: { select: { id: true, name: true, photos: true } }, hotel: { select: { id: true, name: true, city: true, address: true, phone: true } } } },
 };
 

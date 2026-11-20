@@ -6,6 +6,7 @@ jest.mock('../src/config/db', () => ({
   room: { count: jest.fn(), findMany: jest.fn() },
   guest: { findMany: jest.fn() },
   serviceRequest: { count: jest.fn() },
+  payment: { findMany: jest.fn() },
 }));
 const prisma = require('../src/config/db');
 const app = require('../src/app');
@@ -33,9 +34,14 @@ describe('GET /admin/overview', () => {
     prisma.booking.count.mockResolvedValueOnce(2).mockResolvedValueOnce(1).mockResolvedValueOnce(3);
     prisma.room.count.mockResolvedValue(4);
     prisma.serviceRequest.count.mockResolvedValue(5);
+    prisma.payment.findMany.mockResolvedValue([
+      { amount: 1000, paidAt: new Date('2026-12-01T10:00:00Z') },
+      { amount: 500, paidAt: new Date('2026-11-30T23:30:00Z') }, // 00:30 on Dec 1 in Lagos: counts
+      { amount: 700, paidAt: new Date('2026-12-01T23:30:00Z') }, // 00:30 on Dec 2 in Lagos: doesn't
+    ]);
     const res = await get('/overview?date=2026-12-01');
     expect(res.body.data).toEqual({
-      date: '2026-12-01', arrivalsToday: 2, departuresToday: 1, occupancyRate: 0.75, openRequests: 5, revenueToday: null,
+      date: '2026-12-01', arrivalsToday: 2, departuresToday: 1, occupancyRate: 0.75, openRequests: 5, revenueToday: 1500,
     });
     expect(prisma.room.count.mock.calls[0][0]).toEqual({ where: { hotelId: 'h1' } });
     expect(prisma.booking.count.mock.calls[0][0].where.room).toEqual({ hotelId: 'h1' });
@@ -45,6 +51,7 @@ describe('GET /admin/overview', () => {
     prisma.booking.count.mockResolvedValue(0);
     prisma.room.count.mockResolvedValue(0);
     prisma.serviceRequest.count.mockResolvedValue(0);
+    prisma.payment.findMany.mockResolvedValue([]);
     const res = await get('/overview');
     const lagosToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Lagos' }).format(new Date());
     expect(res.body.data.date).toBe(lagosToday);

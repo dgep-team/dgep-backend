@@ -16,6 +16,7 @@ const hotelBody = z.object({
   address: z.string().trim().min(5).max(200),
   phone: z.string().trim().regex(/^\+?\d{7,15}$/, 'Digits only, e.g. +2348012345678').optional(),
   timezone: z.string().refine((tz) => TIMEZONES.includes(tz), 'Use a time zone name, e.g. Africa/Lagos').optional(),
+  paystackSubaccount: z.string().regex(/^ACCT_\w+$/, 'A Paystack subaccount code, e.g. ACCT_abc123').optional(),
 });
 const statusBody = z.object({ status: z.enum(['PENDING', 'ACTIVE', 'SUSPENDED']) });
 

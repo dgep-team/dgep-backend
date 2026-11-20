@@ -6,7 +6,8 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
-app.use(express.json());
+// Keep the raw body too: Paystack webhook signatures are checked against it
+app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }));
 
 // Health check: used by tests and by Render to check the server is up
 app.use('/health', healthRoutes);
