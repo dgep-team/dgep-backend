@@ -3,7 +3,7 @@ const request = require('supertest');
 jest.mock('../src/config/db', () => ({
   hotel: { findMany: jest.fn(), findFirst: jest.fn() },
   roomType: { findMany: jest.fn() },
-  booking: { count: jest.fn(), findUnique: jest.fn() },
+  booking: { count: jest.fn(), findUnique: jest.fn(), updateMany: jest.fn() },
 }));
 const prisma = require('../src/config/db');
 const app = require('../src/app');
