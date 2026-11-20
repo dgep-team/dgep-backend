@@ -25,4 +25,8 @@ config.jwtExpiresIn = '7d';
 config.paystackSecret = process.env.PAYSTACK_SECRET_KEY;
 config.paystackCallbackUrl = process.env.PAYSTACK_CALLBACK_URL; // the frontend page Paystack returns guests to
 
+// Websites allowed to call the API from a browser, comma-separated.
+// Not set = any site (fine: logins use tokens, not cookies).
+config.corsOrigins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map((s) => s.trim()) : '*';
+
 module.exports = config;
