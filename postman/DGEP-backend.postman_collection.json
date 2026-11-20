@@ -74,7 +74,7 @@
             "url": "{{baseUrl}}/api/v1/auth/login",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"john.doe@guest.test\",\n  \"password\": \"{{password}}\"\n}"
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"{{password}}\"\n}"
             }
           },
           "event": [
@@ -170,7 +170,7 @@
             "url": "{{baseUrl}}/api/v1/auth/register",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"new.guest@guest.test\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"New\",\n  \"lastName\": \"Guest\"\n}"
+              "raw": "{\n  \"email\": \"new.guest@example.com\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"New\",\n  \"lastName\": \"Guest\"\n}"
             }
           },
           "event": [
@@ -314,7 +314,7 @@
             "url": "{{baseUrl}}/api/v1/bookings",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"checkIn\": \"2026-12-14\",\n  \"checkOut\": \"2026-12-15\",\n  \"guest\": {\n    \"email\": \"walk.in@guest.test\",\n    \"firstName\": \"Ngozi\",\n    \"lastName\": \"Eze\"\n  }\n}"
+              "raw": "{\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"checkIn\": \"2026-12-14\",\n  \"checkOut\": \"2026-12-15\",\n  \"guest\": {\n    \"email\": \"walk.in@example.com\",\n    \"firstName\": \"Ngozi\",\n    \"lastName\": \"Eze\"\n  }\n}"
             }
           }
         },

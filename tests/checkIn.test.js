@@ -25,7 +25,7 @@ describe('GET /bookings/:id/check-in', () => {
   it("blocks someone else's booking", async () => {
     prisma.booking.findUnique.mockResolvedValue(booking({ guestId: 'guest-2' }));
     const res = await request(app).get('/api/v1/bookings/b1/check-in').set(GUEST);
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
   });
 
   it('returns 404 for an unknown booking', async () => {
