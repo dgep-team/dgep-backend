@@ -21,6 +21,10 @@ const naira = (n) => n * 100; // prices are stored in kobo
 
 const photo = (name) => `https://picsum.photos/seed/dgep-${name}/1200/800`; // placeholder images
 const NIGERIA_TAXES = [{ name: 'VAT', percent: 7.5 }, { name: 'Service charge', percent: 10 }];
+const addOns = (pickup, breakfast) => [
+  { code: 'AIRPORT_PICKUP', name: 'Airport pickup', price: naira(pickup), per: 'STAY' },
+  { code: 'BREAKFAST', name: 'Breakfast', price: naira(breakfast), per: 'GUEST_NIGHT' },
+];
 
 const hotels = [
   {
@@ -28,14 +32,14 @@ const hotels = [
     description: 'A calm business hotel on the Lagos Marina, 10 minutes from Victoria Island.',
     photos: [photo('eko-1'), photo('eko-2')], amenities: ['Free Wi-Fi', 'Pool', 'Gym', 'Restaurant', 'Airport shuttle'],
     arrivalInstructions: 'Enter from Marina Road. Reception is on the ground floor, open 24 hours.',
-    parkingInfo: 'Free parking behind the hotel.', taxes: NIGERIA_TAXES,
+    parkingInfo: 'Free parking behind the hotel.', taxes: NIGERIA_TAXES, addOns: addOns(25000, 6000),
   },
   {
     id: id(102), name: 'Abuja Grand', city: 'Abuja', address: '5 Aso Drive, Maitama', phone: '+2348010000002', status: 'ACTIVE',
     description: 'Quiet rooms with garden views in Maitama, close to the Central Business District.',
     photos: [photo('abuja-1')], amenities: ['Free Wi-Fi', 'Restaurant', 'Garden'], checkInTime: '15:00', checkOutTime: '11:00',
     arrivalInstructions: 'Show your booking at the gate; security will direct you to reception.',
-    parkingInfo: 'Secure parking, ₦2,000 per night.', taxes: NIGERIA_TAXES,
+    parkingInfo: 'Secure parking, ₦2,000 per night.', taxes: NIGERIA_TAXES, addOns: addOns(20000, 5000),
   },
   { id: id(103), name: 'Harbour View', city: 'Port Harcourt', address: '8 Aba Road, GRA', phone: '+2348010000003', status: 'PENDING' }, // still onboarding: no listing yet
 ];

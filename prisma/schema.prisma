@@ -46,6 +46,7 @@ model Hotel {
   parkingInfo         String?
   taxes               Json     @default("[]") // [{ name: "VAT", percent: 7.5 }], added to every stay
   paystackSubaccount  String? // e.g. "ACCT_xxx": Paystack sends this hotel's share there
+  addOns              Json     @default("[]") // [{ code, name, price, per: STAY | NIGHT | GUEST_NIGHT }] (PRD AO-01, AO-02)
 
   rooms     Room[]
   roomTypes RoomType[]
@@ -152,6 +153,9 @@ model Booking {
   arrivalTime     String? // "14:30"
   specialRequests String?
   onlineCheckInAt DateTime? // set when the guest finishes online check-in
+
+  guests Int  @default(1)
+  addOns Json @default("[]") // what was bought with the booking, priced at booking time
 
   guest           Guest            @relation(fields: [guestId], references: [id], onDelete: Restrict)
   room            Room             @relation(fields: [roomId], references: [id], onDelete: Restrict)

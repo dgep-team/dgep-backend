@@ -282,7 +282,7 @@
             "url": "{{baseUrl}}/api/v1/bookings",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"checkIn\": \"2026-12-10\",\n  \"checkOut\": \"2026-12-12\",\n  \"guests\": 2\n}"
+              "raw": "{\n  \"roomTypeId\": \"{{roomTypeId}}\",\n  \"checkIn\": \"2026-12-10\",\n  \"checkOut\": \"2026-12-12\",\n  \"guests\": 2,\n  \"addOns\": [\n    \"AIRPORT_PICKUP\",\n    \"BREAKFAST\"\n  ]\n}"
             }
           },
           "event": [

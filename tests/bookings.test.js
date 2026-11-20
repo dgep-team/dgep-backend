@@ -14,7 +14,10 @@ const DAY = 86400000;
 const inDays = (n) => new Date(Date.now() + n * DAY).toISOString().slice(0, 10);
 const roomType = (fields = {}) => ({
   id: 't1', maxGuests: 2, pricePerNight: 1000000,
-  hotel: { status: 'ACTIVE', timezone: 'Africa/Lagos', taxes: [{ name: 'VAT', percent: 7.5 }] },
+  hotel: {
+    status: 'ACTIVE', timezone: 'Africa/Lagos', taxes: [{ name: 'VAT', percent: 7.5 }],
+    addOns: [{ code: 'BREAKFAST', name: 'Breakfast', price: 500000, per: 'GUEST_NIGHT' }],
+  },
   rooms: [{ id: 'r1' }, { id: 'r2' }], ...fields,
 });
 const body = (extra = {}) => ({ roomTypeId: 't1', checkIn: inDays(3), checkOut: inDays(5), ...extra });
@@ -35,6 +38,17 @@ describe('POST /bookings', () => {
     expect(res.body.data.price).toMatchObject({ nights: 2, subtotal: 2000000, total: 2150000 });
     expect(prisma.booking.create.mock.calls[0][0].data).toMatchObject({ guestId: 'g1', roomId: 'r1', totalAmount: 2150000 });
     expect(res.body.data.booking.holdExpiresAt).toEqual(expect.any(String));
+  });
+
+  it('adds chosen add-ons to the price and keeps them on the booking', async () => {
+    const res = await book(body({ guests: 2, addOns: ['BREAKFAST'] }));
+    // room 2,000,000 + breakfast 500,000 x 2 nights x 2 guests = 4,000,000, + 7.5% VAT
+    expect(res.body.data.price).toMatchObject({ subtotal: 4000000, total: 4300000 });
+    expect(prisma.booking.create.mock.calls[0][0].data).toMatchObject({ guests: 2, totalAmount: 4300000, addOns: [expect.objectContaining({ code: 'BREAKFAST', quantity: 4 })] });
+  });
+
+  it("refuses an add-on the hotel doesn't offer", async () => {
+    expect((await book(body({ addOns: ['HELICOPTER'] }))).body.error.code).toBe('UNKNOWN_ADD_ON');
   });
 
   it('skips rooms that are already booked', async () => {
