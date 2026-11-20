@@ -3,7 +3,7 @@
 const prisma = require('../config/db');
 const AppError = require('../utils/AppError');
 const { quote, nightsBetween } = require('../utils/pricing');
-const { findBookingForUser } = require('./booking.service');
+const { findBookingForUser, releaseExpiredHolds } = require('./booking.service');
 
 const STAYING = ['PENDING', 'CONFIRMED', 'CHECKED_IN']; // the same statuses the no-overlap rule blocks
 const PUBLIC_HOTEL = { id: true, name: true, city: true, address: true, phone: true, description: true, photos: true, amenities: true, checkInTime: true, checkOutTime: true, taxes: true };
@@ -27,6 +27,7 @@ async function getHotel(hotelId, { checkIn, checkOut, guests }) {
     select: { ...PUBLIC_HOTEL, roomTypes: { include: { rooms: { select: { id: true } } }, orderBy: { pricePerNight: 'asc' } } },
   });
   if (!hotel) throw new AppError(404, 'NOT_FOUND', 'Hotel not found');
+  if (checkIn) await releaseExpiredHolds();
 
   const roomTypes = await Promise.all(hotel.roomTypes.map(async ({ rooms, ...type }) => {
     if (guests && type.maxGuests < guests) return null; // too small
