@@ -43,16 +43,8 @@ src/
 
 ## Testing with Postman
 
-Import the files in `postman/` (Postman > Import), then set the collection
-variables `guestId` and `bookingId`.
+Import `postman/DGEP-backend.postman_collection.json` (Postman > Import). It points at
+staging, which has the demo data. Run **0. Log in** first: the tokens are saved and
+used by the other folders.
 
-Log in first, then send `Authorization: Bearer <accessToken>`:
 
-| Who | Login | Demo account (after `npm run db:seed`) |
-|---|---|---|
-| Guest | `POST /api/v1/auth/login` | `john.doe@guest.test` |
-| Hotel staff | `POST /api/v1/admin/auth/login` | `manager@ekosuites.test` (sees only their hotel) |
-| Platform team | `POST /api/v1/platform/auth/login` | `admin@dgep.test` |
-
-Demo password: `Password123!`. Locally you can also skip login with the headers
-`X-User-Id` and `X-User-Role` (guest, staff or admin); this is off on Render.
