@@ -5,6 +5,14 @@
 require('./index'); // loads .env before Prisma reads DATABASE_URL
 const { PrismaClient } = require('@prisma/client');
 
-const prisma = new PrismaClient();
+// Password hashes are never returned unless a query asks for them:
+//   prisma.guest.findUnique({ where, omit: { passwordHash: false } })
+const prisma = new PrismaClient({
+  omit: {
+    guest: { passwordHash: true },
+    staff: { passwordHash: true },
+    platformAdmin: { passwordHash: true },
+  },
+});
 
 module.exports = prisma;

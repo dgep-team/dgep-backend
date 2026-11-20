@@ -4,6 +4,7 @@
 //   3. the platform team sets it ACTIVE: only a complete listing can go live
 const prisma = require('../config/db');
 const AppError = require('../utils/AppError');
+const { hashPassword } = require('../utils/auth');
 
 const STAFF_FIELDS = { id: true, hotelId: true, email: true, firstName: true, lastName: true, role: true, createdAt: true };
 
@@ -48,10 +49,10 @@ async function setStatus(hotelId, status) {
 
 // ----- Hotel staff (always their own hotel) -----
 
-async function addStaff(hotelId, data) {
+async function addStaff(hotelId, { password, ...data }) {
   const hotel = await prisma.hotel.findUnique({ where: { id: hotelId } });
   if (!hotel) throw new AppError(404, 'NOT_FOUND', 'Hotel not found');
-  return prisma.staff.create({ data: { hotelId, ...data }, select: STAFF_FIELDS }); // email taken -> 409
+  return prisma.staff.create({ data: { hotelId, ...data, passwordHash: await hashPassword(password) }, select: STAFF_FIELDS }); // email taken -> 409
 }
 
 function listStaff(hotelId) {
