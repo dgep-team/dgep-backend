@@ -58,11 +58,13 @@ async function guestForBooking(user, details) {
   return { guestId: guest.id, accessToken: signToken({ id: guest.id, role: 'guest' }) };
 }
 
-async function createBooking(user, { roomTypeId, checkIn, checkOut, guests = 1, guest }) {
+async function createBooking(user, { roomTypeId, checkIn, checkOut, guests = 1, guest, addOns = [] }) {
   const type = await prisma.roomType.findUnique({ where: { id: roomTypeId }, include: { hotel: true, rooms: { select: { id: true } } } });
   if (!type || type.hotel.status !== 'ACTIVE') throw new AppError(404, 'NOT_FOUND', 'Room type not found');
   if (guests > type.maxGuests) throw new AppError(400, 'TOO_MANY_GUESTS', `This room is for up to ${type.maxGuests} guests`);
   if (checkIn < hotelToday(type.hotel.timezone)) throw new AppError(400, 'INVALID_DATES', "Check-in can't be in the past");
+  const chosen = addOns.map((code) => type.hotel.addOns.find((a) => a.code === code));
+  if (chosen.includes(undefined)) throw new AppError(400, 'UNKNOWN_ADD_ON', 'This hotel does not offer one of these add-ons');
 
   // Rooms of this type with no booking in the way
   await releaseExpiredHolds();
@@ -75,13 +77,13 @@ async function createBooking(user, { roomTypeId, checkIn, checkOut, guests = 1, 
   if (!free.length) throw new AppError(409, 'ROOM_NOT_AVAILABLE', 'No rooms of this type are free for these dates');
 
   const { guestId, accessToken } = await guestForBooking(user, guest);
-  const price = quote({ pricePerNight: type.pricePerNight, nights: nightsBetween(checkIn, checkOut), taxes: type.hotel.taxes });
+  const price = quote({ pricePerNight: type.pricePerNight, nights: nightsBetween(checkIn, checkOut), taxes: type.hotel.taxes, addOns: chosen, guests });
 
   // Someone may take a room at the same moment: the database rule refuses, so try the next one
   for (const roomId of free) {
     try {
       const booking = await prisma.booking.create({
-        data: { guestId, roomId, checkIn: new Date(checkIn), checkOut: new Date(checkOut), totalAmount: price.total },
+        data: { guestId, roomId, checkIn: new Date(checkIn), checkOut: new Date(checkOut), guests, addOns: price.addOns, totalAmount: price.total },
         include: BOOKING_VIEW,
       });
       return { booking: { ...booking, holdExpiresAt: holdExpiresAt(booking) }, price, ...(accessToken && { accessToken }) };

@@ -6,7 +6,7 @@ const { quote, nightsBetween } = require('../utils/pricing');
 const { findBookingForUser, releaseExpiredHolds } = require('./booking.service');
 
 const STAYING = ['PENDING', 'CONFIRMED', 'CHECKED_IN']; // the same statuses the no-overlap rule blocks
-const PUBLIC_HOTEL = { id: true, name: true, city: true, address: true, phone: true, description: true, photos: true, amenities: true, checkInTime: true, checkOutTime: true, taxes: true };
+const PUBLIC_HOTEL = { id: true, name: true, city: true, address: true, phone: true, description: true, photos: true, amenities: true, checkInTime: true, checkOutTime: true, taxes: true, addOns: true };
 
 async function listHotels({ city }) {
   const hotels = await prisma.hotel.findMany({

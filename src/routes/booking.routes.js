@@ -15,6 +15,7 @@ const createBody = z
     checkOut: date,
     guests: z.number().int().min(1).max(10).optional(),
     guest: z.object({ email, firstName: name, lastName: name, phone: phone.optional() }).optional(), // booking without an account
+    addOns: z.array(z.string().min(1)).max(10).refine((a) => new Set(a).size === a.length, 'Each add-on once').optional(), // codes from GET /hotels/:id
   })
   .refine((b) => b.checkOut > b.checkIn, { path: ['checkOut'], message: 'Must be after checkIn' });
 

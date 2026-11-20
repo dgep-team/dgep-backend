@@ -15,10 +15,23 @@ describe('All-in price (BR-06)', () => {
   it('adds each tax to room price x nights', () => {
     expect(quote({ pricePerNight: 4500000, nights: 2, taxes: [{ name: 'VAT', percent: 7.5 }, { name: 'Service charge', percent: 10 }] }))
       .toEqual({
-        nights: 2, pricePerNight: 4500000, subtotal: 9000000,
+        nights: 2, pricePerNight: 4500000, roomTotal: 9000000, addOns: [], subtotal: 9000000,
         taxes: [{ name: 'VAT', percent: 7.5, amount: 675000 }, { name: 'Service charge', percent: 10, amount: 900000 }],
         total: 10575000,
       });
+  });
+
+  it('adds add-ons before taxes: per stay, per night, per guest per night', () => {
+    const price = quote({
+      pricePerNight: 1000, nights: 2, guests: 2, taxes: [{ name: 'VAT', percent: 10 }],
+      addOns: [
+        { code: 'AIRPORT_PICKUP', name: 'Pickup', price: 500, per: 'STAY' },
+        { code: 'PARKING', name: 'Parking', price: 100, per: 'NIGHT' },
+        { code: 'BREAKFAST', name: 'Breakfast', price: 50, per: 'GUEST_NIGHT' },
+      ],
+    });
+    expect(price.addOns.map((a) => [a.code, a.quantity, a.amount])).toEqual([['AIRPORT_PICKUP', 1, 500], ['PARKING', 2, 200], ['BREAKFAST', 4, 200]]);
+    expect(price).toMatchObject({ roomTotal: 2000, subtotal: 2900, total: 3190 });
   });
 
   it('counts nights between dates', () => {

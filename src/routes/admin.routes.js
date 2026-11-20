@@ -5,6 +5,7 @@ const { requireStaff, requireStaffRole } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const asyncHandler = require('../utils/asyncHandler');
 const { staffBody, date } = require('./schemas');
+const { ADD_ON_PER } = require('../utils/pricing');
 
 const router = express.Router();
 const managerOnly = requireStaffRole('MANAGER');
@@ -37,6 +38,15 @@ const profileBody = z
     arrivalInstructions: text(2000),
     parkingInfo: text(500),
     taxes: z.array(z.object({ name: text(40), percent: z.number().min(0).max(100) })).max(5),
+    addOns: z
+      .array(z.object({
+        code: z.string().regex(/^[A-Z][A-Z0-9_]{1,29}$/, 'Capitals and _, e.g. AIRPORT_PICKUP'),
+        name: text(60),
+        price: z.number().int().positive(), // kobo
+        per: z.enum(ADD_ON_PER),
+      }))
+      .max(20)
+      .refine((list) => new Set(list.map((a) => a.code)).size === list.length, 'Each code once'),
   })
   .partial();
 const roomTypeBody = z.object({
