@@ -41,6 +41,15 @@ src/
 { "success": false, "error": { "code": "ROOM_TAKEN", "message": "Room not available" } }
 ```
 
+## API docs (Swagger) for the frontend
+
+- **Try it in the browser:** https://dgep-backend-staging.onrender.com/api/docs (locally: http://localhost:3000/api/docs).
+  Log in with one of the login endpoints, copy `accessToken`, click **Authorize** and paste it.
+- **Raw spec:** `/api/openapi.json`, for code generators or Postman (Import > Link).
+- **Source:** `docs/openapi.yaml`. When you add or change a route, update it there:
+  `tests/docs.test.js` fails if a route is missing from the docs.
+- The browser can call the API from any site. To allow only the frontend, set `CORS_ORIGINS` on Render.
+
 ## Testing with Postman
 
 Import `postman/DGEP-backend.postman_collection.json` (Postman > Import). It points at

@@ -1,0 +1,982 @@
+openapi: 3.0.3
+info:
+  title: DGEP API
+  version: 1.0.0
+  description: |
+    The Digital Guest Experience Platform backend: one API for many hotels.
+
+    **Responses.** Every success is `{ "success": true, "data": ... }`.
+    Every error is `{ "success": false, "error": { "code", "message", "details?" } }`.
+    Show `message` to the user and branch on `code`.
+
+    **Money** is in kobo (₦1 = 100 kobo), e.g. 4500000 = ₦45,000.
+    **Dates** are `YYYY-MM-DD`, times are 24-hour `HH:MM` in the hotel's time zone.
+
+    **Logging in.** Call a login endpoint, then send `Authorization: Bearer <accessToken>`.
+    Tokens last 7 days. Click **Authorize** above to try endpoints here.
+
+    | Who | Login | Demo email |
+    |---|---|---|
+    | Guest | POST /auth/login | john.doe@example.com |
+    | Hotel staff | POST /admin/auth/login | manager@ekosuites.test |
+    | Platform team | POST /platform/auth/login | admin@dgep.test |
+
+    Every demo password is `Password123!`.
+
+    **Guest booking flow**
+    1. GET /hotels → GET /hotels/{id}?checkIn&checkOut&guests (free rooms + all-in price)
+    2. POST /bookings (logged in, or with `guest` details: keep the returned `accessToken`)
+    3. POST /bookings/{id}/payments → send the guest to `authorizationUrl` (room is held 30 minutes)
+    4. Paystack sends them back to the callback page with `?reference=` → GET /payments/verify/{reference}
+    5. Before arrival: POST /bookings/{id}/check-in, GET /bookings/{id}/arrival
+    6. During the stay: POST /bookings/{id}/requests
+servers:
+  - url: https://dgep-backend-staging.onrender.com/api/v1
+    description: Staging
+  - url: http://localhost:3000/api/v1
+    description: Local
+tags:
+  - name: Auth
+  - name: Browse
+    description: No login needed
+  - name: Bookings
+  - name: Payments
+  - name: Check-in
+  - name: Requests
+    description: Guest service requests (towels, repairs...)
+  - name: Staff
+    description: Hotel staff dashboard. Always the staff member's own hotel.
+  - name: Platform
+    description: The platform team onboards hotels
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    checkIn:
+      name: checkIn
+      in: query
+      description: Send with checkOut
+      schema: { type: string, format: date, example: '2026-12-01' }
+    checkOut:
+      name: checkOut
+      in: query
+      schema: { type: string, format: date, example: '2026-12-03' }
+  responses:
+    Error:
+      description: See error.code
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+              description: |
+                400 VALIDATION_ERROR (details lists each field), INVALID_JSON, INVALID_DATES, UNKNOWN_ADD_ON, TOO_MANY_GUESTS ·
+                401 UNAUTHORIZED, INVALID_LOGIN ·
+                403 FORBIDDEN, HOTEL_SUSPENDED ·
+                404 NOT_FOUND (also someone else's booking) ·
+                409 ALREADY_EXISTS, LOGIN_REQUIRED, ROOM_NOT_AVAILABLE, HOLD_EXPIRED, BOOKING_CLOSED, BOOKING_NOT_PAID, TOO_LATE_TO_CANCEL, HOTEL_NOT_READY, INVALID_STATUS_CHANGE ·
+                502 PAYMENT_PROVIDER_ERROR · 503 PAYMENTS_NOT_CONFIGURED
+            message: { type: string, example: Some fields are missing or invalid }
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field: { type: string, example: checkOut }
+                  message: { type: string, example: Must be after checkIn }
+    Kobo:
+      type: integer
+      description: Kobo. 4500000 = ₦45,000
+      example: 4500000
+    Tax:
+      type: object
+      properties:
+        name: { type: string, example: VAT }
+        percent: { type: number, example: 7.5 }
+    AddOn:
+      type: object
+      properties:
+        code: { type: string, example: BREAKFAST }
+        name: { type: string, example: Breakfast }
+        price: { $ref: '#/components/schemas/Kobo' }
+        per: { type: string, enum: [STAY, NIGHT, GUEST_NIGHT] }
+    Price:
+      type: object
+      description: The all-in price. Show total before the guest pays.
+      properties:
+        nights: { type: integer, example: 2 }
+        pricePerNight: { $ref: '#/components/schemas/Kobo' }
+        roomTotal: { $ref: '#/components/schemas/Kobo' }
+        addOns:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/AddOn'
+              - type: object
+                properties:
+                  quantity: { type: integer, example: 4 }
+                  amount: { $ref: '#/components/schemas/Kobo' }
+        subtotal: { $ref: '#/components/schemas/Kobo' }
+        taxes:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/Tax'
+              - type: object
+                properties:
+                  amount: { $ref: '#/components/schemas/Kobo' }
+        total: { $ref: '#/components/schemas/Kobo' }
+    Guest:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, example: john.doe@example.com }
+        firstName: { type: string, example: John }
+        lastName: { type: string, example: Doe }
+        phone: { type: string, nullable: true, example: '+2348020000001' }
+    Staff:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        hotelId: { type: string, format: uuid }
+        email: { type: string }
+        firstName: { type: string }
+        lastName: { type: string }
+        role: { $ref: '#/components/schemas/StaffRole' }
+    StaffRole:
+      type: string
+      enum: [MANAGER, RECEPTION, HOUSEKEEPING, MAINTENANCE]
+    Hotel:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, example: Eko Suites }
+        city: { type: string, example: Lagos }
+        address: { type: string }
+        phone: { type: string, nullable: true, description: For tap-to-call }
+        description: { type: string, nullable: true }
+        photos: { type: array, items: { type: string, format: uri } }
+        amenities: { type: array, items: { type: string }, example: [Pool, Free Wi-Fi] }
+        checkInTime: { type: string, example: '14:00' }
+        checkOutTime: { type: string, example: '12:00' }
+        taxes: { type: array, items: { $ref: '#/components/schemas/Tax' } }
+        addOns: { type: array, items: { $ref: '#/components/schemas/AddOn' } }
+    HotelSummary:
+      allOf:
+        - $ref: '#/components/schemas/Hotel'
+        - type: object
+          properties:
+            fromPricePerNight: { type: integer, nullable: true, description: Cheapest room type, kobo }
+    RoomType:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        hotelId: { type: string, format: uuid }
+        name: { type: string, example: Deluxe King }
+        description: { type: string, nullable: true }
+        bedType: { type: string, example: 1 king bed }
+        maxGuests: { type: integer, example: 2 }
+        sizeSqm: { type: integer, nullable: true }
+        view: { type: string, nullable: true, example: Lagoon view }
+        amenities: { type: array, items: { type: string } }
+        accessibility: { type: array, items: { type: string } }
+        photos: { type: array, items: { type: string, format: uri } }
+        pricePerNight: { $ref: '#/components/schemas/Kobo' }
+        cancellationPolicy: { type: string, nullable: true }
+    RoomTypeWithAvailability:
+      allOf:
+        - $ref: '#/components/schemas/RoomType'
+        - type: object
+          properties:
+            totalRooms: { type: integer }
+            availableRooms: { type: integer, description: Only when dates are sent }
+            price: { $ref: '#/components/schemas/Price' }
+    BookingStatus:
+      type: string
+      enum: [PENDING, CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED]
+      description: PENDING = not paid yet (held 30 minutes), CONFIRMED = paid
+    Booking:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        guestId: { type: string, format: uuid }
+        roomId: { type: string, format: uuid }
+        checkIn: { type: string, format: date-time, example: '2026-12-01T00:00:00.000Z', description: Use the date part }
+        checkOut: { type: string, format: date-time }
+        guests: { type: integer }
+        status: { $ref: '#/components/schemas/BookingStatus' }
+        totalAmount: { $ref: '#/components/schemas/Kobo' }
+        addOns: { type: array, items: { type: object } }
+        holdExpiresAt: { type: string, format: date-time, nullable: true, description: When an unpaid booking gives its room back }
+        arrivalTime: { type: string, nullable: true }
+        specialRequests: { type: string, nullable: true }
+        onlineCheckInAt: { type: string, format: date-time, nullable: true }
+        room:
+          type: object
+          description: With the room type and hotel. The room number matters only after check-in.
+        payments: { type: array, items: { $ref: '#/components/schemas/Payment' } }
+        createdAt: { type: string, format: date-time }
+    Payment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        reference: { type: string, example: DGEP-3f0c... }
+        amount: { $ref: '#/components/schemas/Kobo' }
+        status: { type: string, enum: [INITIATED, SUCCESS, FAILED] }
+        channel: { type: string, nullable: true, example: card }
+        paidAt: { type: string, format: date-time, nullable: true }
+    CheckInStatus:
+      type: object
+      properties:
+        paymentStatus: { type: string, enum: [PAID, UNPAID] }
+        idVerificationStatus: { type: string, example: NOT_SUBMITTED, description: Optional, not built yet }
+        checkInStatus: { type: string, enum: [NOT_STARTED, COMPLETED] }
+        canCheckIn: { type: boolean }
+    ServiceRequest:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        bookingId: { type: string, format: uuid }
+        category: { type: string, example: TOWELS }
+        note: { type: string, nullable: true }
+        preferredTime: { type: string, format: date-time, nullable: true }
+        status: { type: string, enum: [SUBMITTED, IN_PROGRESS, COMPLETED, CANCELLED] }
+        assignedToId: { type: string, nullable: true }
+        history: { type: array, items: { type: object }, description: 'Oldest first: { at, byId, byRole, status?, assignedToId? }' }
+        createdAt: { type: string, format: date-time }
+    LoginBody:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, example: john.doe@example.com }
+        password: { type: string, example: Password123! }
+    NewStaff:
+      type: object
+      required: [email, password, firstName, lastName, role]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8, maxLength: 72, description: Their first password; they log in with it }
+        firstName: { type: string }
+        lastName: { type: string }
+        role: { $ref: '#/components/schemas/StaffRole' }
+    RoomTypeBody:
+      type: object
+      properties:
+        name: { type: string, maxLength: 60 }
+        description: { type: string }
+        bedType: { type: string }
+        maxGuests: { type: integer, minimum: 1, maximum: 10 }
+        sizeSqm: { type: integer }
+        view: { type: string }
+        amenities: { type: array, items: { type: string } }
+        accessibility: { type: array, items: { type: string } }
+        photos: { type: array, items: { type: string, format: uri }, maxItems: 10 }
+        pricePerNight: { $ref: '#/components/schemas/Kobo' }
+        cancellationPolicy: { type: string }
+
+security:
+  - bearer: []
+
+paths:
+  # ---------- Auth ----------
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Create a guest account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, firstName, lastName]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8, maxLength: 72 }
+                firstName: { type: string }
+                lastName: { type: string }
+                phone: { type: string, example: '+2348012345678' }
+      responses:
+        '201':
+          description: Logged in straight away
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      guest: { $ref: '#/components/schemas/Guest' }
+                      accessToken: { type: string }
+        '409': { description: ALREADY_EXISTS (email has an account or a booking. Ask them to log in.), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Guest login
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/LoginBody' } } } }
+      responses:
+        '200':
+          description: Token for the guest endpoints
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      guest: { $ref: '#/components/schemas/Guest' }
+                      accessToken: { type: string }
+        '401': { $ref: '#/components/responses/Error' }
+  /auth/password:
+    post:
+      tags: [Auth]
+      summary: Set or change my password
+      description: A guest who booked without an account sets their first password here (no currentPassword). Changing an existing one needs currentPassword.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string, minLength: 8, maxLength: 72 }
+                currentPassword: { type: string }
+      responses:
+        '200': { description: '{ passwordSet: true }' }
+        '401': { $ref: '#/components/responses/Error' }
+  /me:
+    get:
+      tags: [Auth]
+      summary: My guest profile
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { success: { type: boolean }, data: { $ref: '#/components/schemas/Guest' } } } } } }
+    patch:
+      tags: [Auth]
+      summary: Update my name or phone
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName: { type: string }
+                lastName: { type: string }
+                phone: { type: string }
+      responses:
+        '200': { description: The updated guest }
+  /admin/auth/login:
+    post:
+      tags: [Auth]
+      summary: Hotel staff login
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/LoginBody', example: { email: manager@ekosuites.test, password: Password123! } } } } }
+      responses:
+        '200':
+          description: '{ staff, accessToken }'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      staff: { $ref: '#/components/schemas/Staff' }
+                      accessToken: { type: string }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { description: HOTEL_SUSPENDED }
+  /platform/auth/login:
+    post:
+      tags: [Auth]
+      summary: Platform team login
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/LoginBody', example: { email: admin@dgep.test, password: Password123! } } } } }
+      responses:
+        '200': { description: '{ admin, accessToken }' }
+        '401': { $ref: '#/components/responses/Error' }
+
+  # ---------- Browse ----------
+  /hotels:
+    get:
+      tags: [Browse]
+      summary: Live hotels, cheapest first price
+      security: []
+      parameters:
+        - { name: city, in: query, schema: { type: string, example: Lagos }, description: Not case sensitive }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { type: array, items: { $ref: '#/components/schemas/HotelSummary' } }
+  /hotels/{id}:
+    get:
+      tags: [Browse]
+      summary: One hotel with its room types
+      description: With dates, each room type also has availableRooms and the all-in price (without add-ons). With guests, room types too small are left out.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/checkIn'
+        - $ref: '#/components/parameters/checkOut'
+        - { name: guests, in: query, schema: { type: integer, minimum: 1, maximum: 10 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    allOf:
+                      - $ref: '#/components/schemas/Hotel'
+                      - type: object
+                        properties:
+                          roomTypes: { type: array, items: { $ref: '#/components/schemas/RoomTypeWithAvailability' } }
+        '404': { $ref: '#/components/responses/Error' }
+  /room-types/compare:
+    get:
+      tags: [Browse]
+      summary: Compare up to 3 room types side by side
+      security: []
+      parameters:
+        - { name: ids, in: query, required: true, schema: { type: string }, description: 1 to 3 room type ids, comma-separated }
+        - $ref: '#/components/parameters/checkIn'
+        - $ref: '#/components/parameters/checkOut'
+      responses:
+        '200': { description: The room types in the order asked, each with its hotel and (with dates) price }
+
+  # ---------- Bookings ----------
+  /bookings:
+    post:
+      tags: [Bookings]
+      summary: Book a room type
+      description: |
+        Logged-in guest: send the token. No account: leave the token out and send `guest`, then keep the returned accessToken for paying and check-in.
+        The room is held for 30 minutes (holdExpiresAt) until it's paid.
+      security: [{ bearer: [] }, {}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [roomTypeId, checkIn, checkOut]
+              properties:
+                roomTypeId: { type: string, format: uuid }
+                checkIn: { type: string, format: date, example: '2026-12-01' }
+                checkOut: { type: string, format: date, example: '2026-12-03' }
+                guests: { type: integer, minimum: 1, maximum: 10, default: 1 }
+                addOns: { type: array, items: { type: string }, example: [BREAKFAST], description: Codes from the hotel's addOns }
+                guest:
+                  type: object
+                  description: Only when not logged in
+                  required: [email, firstName, lastName]
+                  properties:
+                    email: { type: string, format: email }
+                    firstName: { type: string }
+                    lastName: { type: string }
+                    phone: { type: string }
+      responses:
+        '201':
+          description: Booked, waiting for payment
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      booking: { $ref: '#/components/schemas/Booking' }
+                      price: { $ref: '#/components/schemas/Price' }
+                      accessToken: { type: string, description: Only when booked without an account }
+        '400': { description: 'VALIDATION_ERROR, INVALID_DATES, TOO_MANY_GUESTS, UNKNOWN_ADD_ON', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '401': { description: Not logged in and no guest details }
+        '404': { description: Room type not found, or the hotel isn't live }
+        '409': { description: 'ROOM_NOT_AVAILABLE, LOGIN_REQUIRED (the email has an account: log in first)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    get:
+      tags: [Bookings]
+      summary: My bookings, newest first
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { type: array, items: { $ref: '#/components/schemas/Booking' } }
+  /bookings/{id}:
+    get:
+      tags: [Bookings]
+      summary: One of my bookings, with room, hotel and payments
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { success: { type: boolean }, data: { $ref: '#/components/schemas/Booking' } } } } } }
+        '404': { description: Not found, or not your booking }
+  /bookings/{id}/cancel:
+    patch:
+      tags: [Bookings]
+      summary: Cancel my booking (before the check-in day)
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      responses:
+        '200': { description: The cancelled booking }
+        '409': { description: 'BOOKING_CLOSED, TOO_LATE_TO_CANCEL', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /bookings/{id}/arrival:
+    get:
+      tags: [Bookings]
+      summary: Arrival details (address, phone, times, parking)
+      description: roomNumber is null until the guest is checked in.
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      hotelName: { type: string }
+                      address: { type: string }
+                      phone: { type: string }
+                      checkIn: { type: string }
+                      checkOut: { type: string }
+                      checkInTime: { type: string }
+                      checkOutTime: { type: string }
+                      arrivalInstructions: { type: string, nullable: true }
+                      parkingInfo: { type: string, nullable: true }
+                      roomType: { type: string }
+                      roomNumber: { type: string, nullable: true }
+
+  # ---------- Payments ----------
+  /bookings/{id}/payments:
+    post:
+      tags: [Payments]
+      summary: Start paying with Paystack
+      description: Send the guest to authorizationUrl. If a payment failed, call this again for a new attempt.
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      authorizationUrl: { type: string, format: uri }
+                      reference: { type: string }
+        '409': { description: 'BOOKING_CLOSED (already paid or cancelled), HOLD_EXPIRED (book again)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '503': { description: PAYMENTS_NOT_CONFIGURED }
+  /payments/verify/{reference}:
+    get:
+      tags: [Payments]
+      summary: Check a payment after Paystack sends the guest back
+      description: Call it on the callback page with the reference from the URL. Safe to call more than once.
+      parameters:
+        - { name: reference, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: status is success, failed or pending
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      status: { type: string, enum: [success, failed, pending] }
+                      booking: { $ref: '#/components/schemas/Booking' }
+                      refundNeeded: { type: boolean, description: Paid after the hold ran out and the room was gone. Show 'the hotel will refund you'. }
+  /payments/webhook:
+    post:
+      tags: [Payments]
+      summary: Paystack only (not for the frontend)
+      security: []
+      parameters:
+        - { name: x-paystack-signature, in: header, required: true, schema: { type: string } }
+      responses:
+        '200': { description: '{ received: true }' }
+        '401': { description: INVALID_SIGNATURE }
+
+  # ---------- Check-in ----------
+  /bookings/{id}/check-in:
+    get:
+      tags: [Check-in]
+      summary: Online check-in status
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { success: { type: boolean }, data: { $ref: '#/components/schemas/CheckInStatus' } } } } } }
+    post:
+      tags: [Check-in]
+      summary: Finish online check-in before arrival
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [arrivalTime]
+              properties:
+                arrivalTime: { type: string, example: '14:30' }
+                specialRequests: { type: string, maxLength: 500 }
+                guest:
+                  type: object
+                  description: Fix the guest's details if needed
+                  properties:
+                    firstName: { type: string }
+                    lastName: { type: string }
+                    phone: { type: string }
+      responses:
+        '200': { description: The check-in status }
+        '409': { description: 'BOOKING_NOT_PAID, BOOKING_CLOSED', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  # ---------- Requests ----------
+  /concierge/categories:
+    get:
+      tags: [Requests]
+      summary: What a guest can ask for
+      responses:
+        '200': { description: '[{ code: TOWELS, name: Towels }, ...]. Codes: TOWELS, TOILETRIES, HOUSEKEEPING, MAINTENANCE, ROOM_SERVICE, OTHER' }
+  /bookings/{id}/requests:
+    post:
+      tags: [Requests]
+      summary: Ask the hotel for something
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [category]
+              properties:
+                category: { type: string, enum: [TOWELS, TOILETRIES, HOUSEKEEPING, MAINTENANCE, ROOM_SERVICE, OTHER] }
+                note: { type: string, maxLength: 500, description: Needed for OTHER }
+                preferredTime: { type: string, format: date-time, example: '2026-12-01T15:00:00+01:00' }
+      responses:
+        '201': { description: The request, SUBMITTED, content: { application/json: { schema: { type: object, properties: { success: { type: boolean }, data: { $ref: '#/components/schemas/ServiceRequest' } } } } } }
+    get:
+      tags: [Requests]
+      summary: Requests for this booking
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { success: { type: boolean }, data: { type: array, items: { $ref: '#/components/schemas/ServiceRequest' } } } } } } }
+  /requests/{id}:
+    get:
+      tags: [Requests]
+      summary: One request, with its history
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { success: { type: boolean }, data: { $ref: '#/components/schemas/ServiceRequest' } } } } } }
+  /requests/{id}/cancel:
+    patch:
+      tags: [Requests]
+      summary: Cancel my request (before staff start it)
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      responses:
+        '200': { description: The cancelled request }
+        '409': { description: INVALID_STATUS_CHANGE }
+
+  # ---------- Staff dashboard ----------
+  /admin/overview:
+    get:
+      tags: [Staff]
+      summary: Today at the hotel
+      parameters:
+        - { name: date, in: query, schema: { type: string, format: date }, description: Default is today at the hotel }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      date: { type: string, format: date }
+                      arrivalsToday: { type: integer }
+                      departuresToday: { type: integer }
+                      occupancyRate: { type: number, example: 0.75, description: 0.75 = 75% }
+                      openRequests: { type: integer }
+                      revenueToday: { $ref: '#/components/schemas/Kobo' }
+  /admin/bookings:
+    get:
+      tags: [Staff]
+      summary: Bookings at my hotel
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/BookingStatus' } }
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+        - { name: search, in: query, schema: { type: string }, description: Guest name or email }
+      responses:
+        '200': { description: Bookings with guest, room and check-in status }
+  /admin/bookings/{id}:
+    get:
+      tags: [Staff]
+      summary: One booking at my hotel
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      responses:
+        '200': { description: Booking with guest, room, requests and check-in status }
+        '404': { description: Not found, or another hotel's booking }
+  /admin/bookings/{id}/check-in:
+    post:
+      tags: [Staff]
+      summary: Check the guest in at the front desk
+      description: Doing it twice is fine; the second time changes nothing.
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      responses:
+        '200': { description: The booking, now CHECKED_IN }
+        '409': { description: 'BOOKING_NOT_PAID, BOOKING_CLOSED' }
+  /admin/guests:
+    get:
+      tags: [Staff]
+      summary: Guests who have booked at my hotel
+      parameters:
+        - { name: search, in: query, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+  /admin/rooms/availability:
+    get:
+      tags: [Staff]
+      summary: Which rooms are free or booked between two dates
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        '200': { description: Each room with its bookings in the range }
+  /admin/requests:
+    get:
+      tags: [Staff]
+      summary: Guest requests at my hotel
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [SUBMITTED, IN_PROGRESS, COMPLETED, CANCELLED] } }
+        - { name: assignedTo, in: query, schema: { type: string }, description: A staff id, or "me" }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { success: { type: boolean }, data: { type: array, items: { $ref: '#/components/schemas/ServiceRequest' } } } } } } }
+  /admin/requests/{id}:
+    get:
+      tags: [Staff]
+      summary: One request
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      responses:
+        '200': { description: OK }
+  /admin/requests/{id}/status:
+    patch:
+      tags: [Staff]
+      summary: Start or finish a request
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [IN_PROGRESS, COMPLETED] }
+      responses:
+        '200': { description: The updated request }
+        '409': { description: INVALID_STATUS_CHANGE }
+  /admin/requests/{id}/assign:
+    patch:
+      tags: [Staff]
+      summary: Give a request to a staff member (manager or reception)
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [staffId]
+              properties:
+                staffId: { type: string, nullable: true, description: null = unassign }
+      responses:
+        '200': { description: The updated request }
+        '403': { description: Your staff role cannot do this }
+  /admin/hotel:
+    get:
+      tags: [Staff]
+      summary: My hotel's listing
+      responses:
+        '200': { description: The hotel, with listingProblems (what's missing before it can go live) }
+    patch:
+      tags: [Staff]
+      summary: Edit the listing (manager)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Send only what changes
+              properties:
+                description: { type: string }
+                phone: { type: string }
+                photos: { type: array, items: { type: string, format: uri }, maxItems: 10 }
+                amenities: { type: array, items: { type: string } }
+                checkInTime: { type: string, example: '14:00' }
+                checkOutTime: { type: string, example: '12:00' }
+                arrivalInstructions: { type: string }
+                parkingInfo: { type: string }
+                taxes: { type: array, items: { $ref: '#/components/schemas/Tax' }, maxItems: 5 }
+                addOns: { type: array, items: { $ref: '#/components/schemas/AddOn' }, maxItems: 20 }
+      responses:
+        '200': { description: The updated hotel }
+  /admin/room-types:
+    get:
+      tags: [Staff]
+      summary: My hotel's room types
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { success: { type: boolean }, data: { type: array, items: { $ref: '#/components/schemas/RoomType' } } } } } } }
+    post:
+      tags: [Staff]
+      summary: Add a room type (manager)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/RoomTypeBody'
+                - required: [name, bedType, maxGuests, pricePerNight]
+      responses:
+        '201': { description: The new room type }
+  /admin/room-types/{id}:
+    patch:
+      tags: [Staff]
+      summary: Edit a room type (manager)
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      requestBody: { content: { application/json: { schema: { $ref: '#/components/schemas/RoomTypeBody' } } } }
+      responses:
+        '200': { description: The updated room type }
+  /admin/rooms:
+    post:
+      tags: [Staff]
+      summary: Add a physical room (manager)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [number, roomTypeId]
+              properties:
+                number: { type: string, example: '204' }
+                roomTypeId: { type: string, format: uuid }
+      responses:
+        '201': { description: The new room }
+        '409': { description: ALREADY_EXISTS (room number taken) }
+  /admin/staff:
+    get:
+      tags: [Staff]
+      summary: Staff at my hotel
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { success: { type: boolean }, data: { type: array, items: { $ref: '#/components/schemas/Staff' } } } } } } }
+    post:
+      tags: [Staff]
+      summary: Add a staff member (manager)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/NewStaff' } } } }
+      responses:
+        '201': { description: The new staff member }
+        '409': { description: ALREADY_EXISTS }
+
+  # ---------- Platform ----------
+  /platform/hotels:
+    post:
+      tags: [Platform]
+      summary: Add a hotel (starts PENDING)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, city, address]
+              properties:
+                name: { type: string }
+                city: { type: string }
+                address: { type: string }
+                phone: { type: string }
+                timezone: { type: string, example: Africa/Lagos }
+                paystackSubaccount: { type: string, example: ACCT_abc123 }
+      responses:
+        '201': { description: The new hotel }
+    get:
+      tags: [Platform]
+      summary: Every hotel, any status
+      responses:
+        '200': { description: OK }
+  /platform/hotels/{id}/status:
+    patch:
+      tags: [Platform]
+      summary: Put a hotel live, back to pending, or suspend it
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [PENDING, ACTIVE, SUSPENDED] }
+      responses:
+        '200': { description: The updated hotel }
+        '409': { description: HOTEL_NOT_READY (details lists what's missing) }
+  /platform/hotels/{id}/staff:
+    post:
+      tags: [Platform]
+      summary: Add a hotel's first staff member, usually the manager
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/NewStaff' } } } }
+      responses:
+        '201': { description: The new staff member }
