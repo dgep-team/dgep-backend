@@ -20,5 +20,6 @@ router.use(requireStaff);
 router.post('/rooms', managerOnly, validate(roomBody), asyncHandler(controller.addRoom));
 router.get('/staff', asyncHandler(controller.listStaff));
 router.post('/staff', managerOnly, validate(staffBody), asyncHandler(controller.addStaff));
+router.use('/requests', require('./adminRequest.routes'));
 
 module.exports = router;
