@@ -2,7 +2,7 @@
 // Every query is limited to the staff member's own hotel (user.hotelId).
 const prisma = require('../config/db');
 const AppError = require('../utils/AppError');
-const { hotelToday } = require('../utils/dates');
+const { hotelToday, hotelDay } = require('../utils/dates');
 const { findBookingForUser, GUEST_FIELDS } = require('./booking.service');
 const { summary } = require('./checkIn.service');
 
@@ -15,12 +15,13 @@ const atHotel = (user) => ({ room: { hotelId: user.hotelId } });
 async function overview(user, { date = hotelToday(user.hotel.timezone) }) {
   const day = new Date(date);
   const bookings = (where) => prisma.booking.count({ where: { ...atHotel(user), ...where } });
-  const [arrivals, departures, occupied, rooms, openRequests] = await Promise.all([
+  const [arrivals, departures, occupied, rooms, openRequests, revenueToday] = await Promise.all([
     bookings({ checkIn: day, status: { in: STAYING } }),
     bookings({ checkOut: day, status: { in: [...STAYING, 'CHECKED_OUT'] } }),
     bookings({ checkIn: { lte: day }, checkOut: { gt: day }, status: { in: STAYING } }),
     prisma.room.count({ where: { hotelId: user.hotelId } }),
     prisma.serviceRequest.count({ where: { booking: atHotel(user), status: { in: ['SUBMITTED', 'IN_PROGRESS'] } } }),
+    revenueOn(user, date),
   ]);
   return {
     date,
@@ -28,8 +29,20 @@ async function overview(user, { date = hotelToday(user.hotel.timezone) }) {
     departuresToday: departures,
     occupancyRate: rooms ? Math.round((occupied / rooms) * 100) / 100 : 0, // 0.75 = 75% of rooms
     openRequests,
-    revenueToday: null, // needs the payments table from SCRUM-27
+    revenueToday, // kobo, successful payments on this day (hotel time)
   };
+}
+
+// Sum of successful payments on a calendar day at the hotel
+async function revenueOn(user, date) {
+  const day = new Date(date).getTime();
+  const payments = await prisma.payment.findMany({
+    where: { status: 'SUCCESS', booking: atHotel(user), paidAt: { gte: new Date(day - 86400000), lt: new Date(day + 2 * 86400000) } },
+    select: { amount: true, paidAt: true },
+  });
+  return payments
+    .filter((p) => hotelDay(p.paidAt, user.hotel.timezone) === date)
+    .reduce((sum, p) => sum + p.amount, 0);
 }
 
 async function listBookings(user, { status, from, to, search }) {
@@ -54,6 +67,7 @@ async function getBooking(bookingId, user) {
   const booking = await findBookingForUser(bookingId, user, {
     guest: { select: GUEST_FIELDS },
     idVerification: { select: { id: true, idType: true, status: true, reason: true } },
+    payments: { select: { reference: true, status: true, amount: true, channel: true, paidAt: true }, orderBy: { createdAt: 'desc' } },
   });
   return { ...booking, ...summary(booking) };
 }

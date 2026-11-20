@@ -45,6 +45,7 @@ model Hotel {
   arrivalInstructions String?
   parkingInfo         String?
   taxes               Json     @default("[]") // [{ name: "VAT", percent: 7.5 }], added to every stay
+  paystackSubaccount  String? // e.g. "ACCT_xxx": Paystack sends this hotel's share there
 
   rooms     Room[]
   roomTypes RoomType[]
@@ -156,6 +157,7 @@ model Booking {
   room            Room             @relation(fields: [roomId], references: [id], onDelete: Restrict)
   idVerification  IdVerification?
   serviceRequests ServiceRequest[]
+  payments        Payment[]
 
   // The migration also adds a database rule that blocks two active
   // bookings for the same room on overlapping dates.
@@ -233,4 +235,28 @@ model PlatformAdmin {
   createdAt    DateTime @default(now())
 
   @@map("platform_admins")
+}
+
+enum PaymentStatus {
+  INITIATED // sent to Paystack, waiting for the guest
+  SUCCESS
+  FAILED
+}
+
+// One Paystack attempt for a booking. A failed attempt can be retried with a new one.
+model Payment {
+  id        String        @id @default(uuid())
+  bookingId String
+  reference String        @unique // our id for the attempt, also known to Paystack
+  amount    Int // kobo
+  status    PaymentStatus @default(INITIATED)
+  channel   String? // card, bank, ussd...
+  paidAt    DateTime?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+
+  @@index([bookingId])
+  @@map("payments")
 }

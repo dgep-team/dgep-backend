@@ -21,4 +21,8 @@ config.jwtSecret = process.env.JWT_SECRET || require('crypto').randomBytes(32).t
 if (!process.env.JWT_SECRET && config.isProduction) console.warn('JWT_SECRET is not set: using a temporary secret');
 config.jwtExpiresIn = '7d';
 
+// Paystack (test mode: a sk_test_ key). Without it, payment endpoints answer 503.
+config.paystackSecret = process.env.PAYSTACK_SECRET_KEY;
+config.paystackCallbackUrl = process.env.PAYSTACK_CALLBACK_URL; // the frontend page Paystack returns guests to
+
 module.exports = config;
